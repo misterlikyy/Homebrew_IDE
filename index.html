@@ -2017,29 +2017,6 @@ function finishBuild(spec, notes0) {
   spec.parts.forEach(sp => { if (sp.auto && sp.auto.length) lines.push({ t: (sp.label || PARTS[sp.type].name) + ': the app selected ' + sp.auto.join(', ') + '.', k: '' }); });
   notes.forEach(n => lines.push({ t: n, k: 'w' })); agLog(lines);
 }
-async function aiSpec(text, notes) {
-  const sys = 'You turn Arduino Uno project instructions into a circuit description. Reply with JSON only, with no text around it, in this shape: {"parts":[{"type":"led","label":"Red LED","props":{"color":"red"},"pins":{"sig":"D9"}}],"notes":["short remark"]}. Allowed types and pin keys: ' +
-    Object.entries(PARTS).map(([k, d]) => k + '(' + (d.terms.filter(t => !t[2].startsWith('i2c')).map(t => t[0]).join(',') || 'no pins') + ')').join(', ') +
-    '. For led, props.color is one of red, green, blue, yellow, white, orange and props.ohms is the resistor. Pins are D2 to D13 or A0 to A5. Use the PWM pins D3, D5, D6, D9, D10 or D11 for rgbled and motor. Never use D0 or D1. Leave a pin out when the instructions do not say which one to use, and the app will pick it.';
-  const r = await window.uno.agentAsk(text, sys);
-  if (!r.ok) { notes.push('Claude could not be used: ' + r.error + ' The built-in agent was used instead.'); return null; }
-  try {
-    const a = r.text.indexOf('{'), b = r.text.lastIndexOf('}'), j = JSON.parse(r.text.slice(a, b + 1)), parts = [];
-    (j.parts || []).forEach(p => {
-      if (!PARTS[p.type]) return; const pins = {};
-      PARTS[p.type].terms.forEach(t => { const pn = normPin((p.pins || {})[t[0]], t[2]); if (pn && !t[2].startsWith('i2c:')) pins[t[0]] = pn; });
-      parts.push({ type: p.type, label: String(p.label || '').slice(0, 40), props: p.props || {}, pins });
-    });
-    (j.notes || []).forEach(n => notes.push('Claude: ' + n)); return { parts, notes: [] };
-  } catch (e) { notes.push('The answer from Claude could not be read. The built-in agent was used instead.'); return null; }
-}
-async function agBuild() {
-  const text = $('#agText').value.trim(); if (!text) { agLog(['Type or load the instructions of your project first.'], 'w'); return; }
-  if (circ().parts.length && !(await askConfirm('Replace the circuit that is on the canvas?', 'Replace'))) return;
-  const notes = []; let spec = null;
-  if ($('#agAi').checked && inApp) { agLog(['Asking Claude…']); spec = await aiSpec(text, notes); }
-  finishBuild(spec || parseInstructions(text), notes);
-}
 async function agFromCode() {
   if (circ().parts.length && !(await askConfirm('Replace the circuit that is on the canvas with one built from your code?', 'Replace'))) return;
   finishBuild(parseCode(), []);
