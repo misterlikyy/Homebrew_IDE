@@ -1,4 +1,4 @@
-name: Build Windows IDE.exe
+name: Build Windows app
 
 on:
   workflow_dispatch:
@@ -6,6 +6,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: source
     steps:
       - name: Check out project
         uses: actions/checkout@v4
@@ -14,12 +17,12 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Build portable EXE
         run: npm run dist
-      - name: Upload IDE.exe
+      - name: Upload portable EXE
         uses: actions/upload-artifact@v4
         with:
-          name: IDE-windows
-          path: dist/IDE.exe
+          name: ide-alpha-windows
+          path: source/dist/ide-alpha-*.exe
           if-no-files-found: error
