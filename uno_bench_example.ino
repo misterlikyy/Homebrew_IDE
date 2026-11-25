@@ -8,9 +8,12 @@ const int SENSOR_PIN = A0;
 const int LED_PIN = 13;
 const int THRESHOLD = 500;
 const int STEP_DELAY = 800;   // slows each step so you can watch it. Set to 0 for full speed.
+unsigned long lastPinReport = 0;
 
 bool manual = false;
 bool ledOn = false;
+
+void reportPins();
 
 void step(int id, const char* title, const char* desc) {
   Serial.print("STEP:");
@@ -19,7 +22,27 @@ void step(int id, const char* title, const char* desc) {
   Serial.print(title);
   Serial.print(":");
   Serial.println(desc);
-  delay(STEP_DELAY);
+  unsigned long until = millis() + STEP_DELAY;
+  while ((long)(until - millis()) > 0) {
+    if (millis() - lastPinReport >= 200) reportPins();
+    delay(10);
+  }
+}
+
+// Sends the Uno's digital and analog pin state to the IDE dashboard.
+void reportPins() {
+  lastPinReport = millis();
+  Serial.print("PINS:");
+  for (int pin = 0; pin < 14; pin++) {
+    if (pin == LED_PIN) Serial.print(ledOn ? 'O' : 'o');
+    else Serial.print('i');
+  }
+  Serial.print(':');
+  for (int pin = A0; pin <= A5; pin++) {
+    if (pin > A0) Serial.print(',');
+    Serial.print(analogRead(pin));
+  }
+  Serial.print(":5000:-1,-1,-1,-1,-1,-1\n");
 }
 
 void setup() {
@@ -29,6 +52,7 @@ void setup() {
 }
 
 void loop() {
+  if (millis() - lastPinReport >= 200) reportPins();
   step(1, "Check for commands", "Looking for a command from the computer.");
   while (Serial.available()) {
     String c = Serial.readStringUntil('\n');

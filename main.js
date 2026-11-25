@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, session, net, safeStorage } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, session, net } = require('electron');
 const { spawn, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -121,6 +121,19 @@ function uploadHint(out) {
   return 'Upload failed. Read the messages above for the reason.';
 }
 
+/* ---------- interface updates: a newer index.html can be installed without rebuilding the exe ---------- */
+const API_LEVEL = 1;            // raised only when the interface needs something new from main.js or preload.js
+const uiDir = () => path.join(app.getPath('userData'), 'ui');
+function meta(file, name) {
+  try { const t = fs.readFileSync(file, 'utf8').slice(0, 4000), x = t.match(new RegExp('<meta name="' + name + '" content="(\\d+)"')); return x ? +x[1] : 0; } catch { return 0; }
+}
+function uiFile() {
+  const bundled = path.join(__dirname, 'index.html'), ext = path.join(uiDir(), 'index.html');
+  if (fs.existsSync(ext) && meta(ext, 'ide-api') <= API_LEVEL && meta(ext, 'ide-build') > meta(bundled, 'ide-build')) return ext;
+  return bundled;
+}
+const reloadAll = () => wins.forEach(w => w.loadFile(uiFile(), { query: w._query }));
+
 /* ---------- windows ---------- */
 const wins = new Map();                       // id -> BrowserWindow. Every window is its own workspace.
 function nextId() { let n = 1; while (wins.has(n)) n++; return n; }
@@ -131,6 +144,7 @@ function createWindow(o) {
   const id = nextId();
   const opts = {
     width: sat ? 920 : 1280, height: sat ? 720 : 860, minWidth: sat ? 520 : 760, minHeight: sat ? 360 : 520,
+    resizable: true, maximizable: true, minimizable: true,
     title: '{:_IDE_:}', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') }
   };
@@ -141,7 +155,8 @@ function createWindow(o) {
   win.on('closed', () => wins.delete(id));
   win.on('focus', () => win.webContents.focus());      // keyboard goes to the page whenever the window is activated
   const query = { ws: String(id) }; if (sat) { query.view = String(o.view); query.owner = String(o.owner || ''); }
-  win.loadFile(path.join(__dirname, 'index.html'), { query });
+  win._query = query;
+  win.loadFile(uiFile(), { query });
   return id;
 }
 
@@ -166,8 +181,21 @@ function setupSession() {
 }
 
 /* ---------- IPC ---------- */
+ipcMain.handle('ui:info', () => ({ build: meta(uiFile(), 'ide-build'), bundled: meta(path.join(__dirname, 'index.html'), 'ide-build'), external: uiFile() !== path.join(__dirname, 'index.html') }));
+ipcMain.handle('ui:install', async e => {
+  const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title: 'Choose the interface update', filters: [{ name: 'Interface file', extensions: ['html'] }], properties: ['openFile'] });
+  if (r.canceled) return { ok: false, cancelled: true };
+  const f = r.filePaths[0], build = meta(f, 'ide-build'), api = meta(f, 'ide-api');
+  if (!build) return { ok: false, error: 'That file is not an interface update for this app.' };
+  if (api > API_LEVEL) return { ok: false, error: 'This update needs a newer IDE.exe. Build the app again from the latest zip first.' };
+  if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'This update is not newer than the interface that is already built into IDE.exe (build ' + build + '). Nothing was changed.' };
+  fs.mkdirSync(uiDir(), { recursive: true }); fs.copyFileSync(f, path.join(uiDir(), 'index.html')); reloadAll();
+  return { ok: true, build };
+});
+ipcMain.handle('ui:reset', () => { fs.rmSync(path.join(uiDir(), 'index.html'), { force: true }); reloadAll(); return { ok: true }; });
 ipcMain.handle('window:new', (e, o) => createWindow(o));
 ipcMain.on('window:focus', (e, id) => { const w = wins.get(Number(id)); if (w) { if (w.isMinimized()) w.restore(); w.focus(); } });
+ipcMain.on('window:close', (e, id) => { const w = wins.get(Number(id)); if (w && w !== BrowserWindow.fromWebContents(e.sender)) w.close(); });
 
 ipcMain.handle('serial:describe', () => allPorts());            // port names and board names for the device picker
 ipcMain.on('serial:prefer', (e, name) => { lastPortName = String(name || ''); });
@@ -306,31 +334,6 @@ ipcMain.handle('pkg:urls', async (e, action, url) => {
   if (action === 'remove' && u) await run(['config', 'remove', key, u]);
   const g = await run(['config', 'get', key]);
   return { ok: true, urls: [...new Set((g.so || g.out).match(/https?:\/\/[^\s\]\[,'"]+/g) || [])] };
-});
-
-/* ---------- the project agent: an optional helper that asks Claude to read project instructions ---------- */
-const keyFile = () => path.join(app.getPath('userData'), 'agent.key');
-function readKey() {
-  try { const b = fs.readFileSync(keyFile()); return safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(b) : b.toString(); } catch { return ''; }
-}
-ipcMain.handle('agent:key', (e, action, key) => {
-  if (action === 'set') { const k = String(key || '').trim(); if (!k) return false; fs.writeFileSync(keyFile(), safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(k) : Buffer.from(k)); return true; }
-  if (action === 'clear') { fs.rmSync(keyFile(), { force: true }); return false; }
-  return !!readKey();
-});
-ipcMain.handle('agent:ask', async (e, text, system) => {
-  const key = readKey();
-  if (!key) return { ok: false, error: 'Add your Claude API key first.' };
-  try {
-    const res = await net.fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 4000, system, messages: [{ role: 'user', content: String(text) }] })
-    });
-    const j = await res.json();
-    if (!res.ok) return { ok: false, error: (j.error && j.error.message) || ('HTTP ' + res.status) };
-    return { ok: true, text: (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n') };
-  } catch (err) { return { ok: false, error: err.message }; }
 });
 
 ipcMain.handle('file:open', async e => {
