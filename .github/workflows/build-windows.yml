@@ -1,0 +1,25 @@
+name: Build Windows IDE.exe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+      - name: Set up Node.js for the build machine
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build portable EXE
+        run: npm run dist
+      - name: Upload IDE.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: IDE-windows
+          path: dist/IDE.exe
+          if-no-files-found: erro
