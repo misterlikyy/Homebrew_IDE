@@ -3,6 +3,8 @@ const { spawn, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+// Keep existing projects, settings, and downloaded upload tools across the rename.
+app.setPath('userData', path.join(app.getPath('appData'), 'ide-alpha'));
 
 /* ---------- arduino-cli: use the copy this app installed, or the one on the PATH ---------- */
 const cliDir = () => path.join(app.getPath('userData'), 'arduino-cli');
@@ -53,9 +55,9 @@ function writeSketch(files) {
   const list = typeof files === 'string' ? [{ name: 'uno_bench_sketch.ino', text: files }] : files;
   const primary = list.findIndex(f => /\.ino$/i.test(f.name));
   if (primary < 0) return null;
-  const dir = path.join(os.tmpdir(), 'uno_bench_sketch');
-  fs.rmSync(dir, { recursive: true, force: true });
-  fs.mkdirSync(dir, { recursive: true });
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'ide-build-'));
+  const dir = path.join(parent, 'uno_bench_sketch');
+  fs.mkdirSync(dir);
   list.forEach((f, i) => fs.writeFileSync(path.join(dir, i === primary ? 'uno_bench_sketch.ino' : path.basename(f.name)), f.text));
   return dir;
 }
@@ -145,7 +147,7 @@ function createWindow(o) {
   const opts = {
     width: sat ? 920 : 1280, height: sat ? 720 : 860, minWidth: sat ? 520 : 760, minHeight: sat ? 360 : 520,
     resizable: true, maximizable: true, minimizable: true,
-    title: 'ide-alpha', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
+    title: 'IDE-beta', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') }
   };
   const f = BrowserWindow.getFocusedWindow();
@@ -187,8 +189,8 @@ ipcMain.handle('ui:install', async e => {
   if (r.canceled) return { ok: false, cancelled: true };
   const f = r.filePaths[0], build = meta(f, 'ide-build'), api = meta(f, 'ide-api');
   if (!build) return { ok: false, error: 'That file is not an interface update for this app.' };
-  if (api > API_LEVEL) return { ok: false, error: 'This update needs a newer ide-alpha-1.exe. Build the app again from the latest zip first.' };
-  if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'This update is not newer than the interface that is already built into ide-alpha-1.exe (build ' + build + '). Nothing was changed.' };
+  if (api > API_LEVEL) return { ok: false, error: 'This update needs a newer IDE-beta.exe. Download the latest app ZIP first.' };
+  if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'The built-in interface is already as new as this update (build ' + build + ').' };
   fs.mkdirSync(uiDir(), { recursive: true }); fs.copyFileSync(f, path.join(uiDir(), 'index.html')); reloadAll();
   return { ok: true, build };
 });
@@ -254,9 +256,13 @@ ipcMain.handle('cli:compile', async (e, files, fqbn) => {
   const need = await needTools(fqbn); if (need) return need;
   const dir = writeSketch(files);
   if (!dir) return { ok: false, error: 'The project needs a .ino file.' };
-  send('Compiling…');
-  const r = await run(['compile', '--warnings', 'more', '--fqbn', fqbn, dir], send);
-  return r.code === 0 ? { ok: true } : { ok: false, error: 'Build failed. See Problems for the details.' };
+  try {
+    send('Compiling…');
+    const r = await run(['compile', '--warnings', 'more', '--fqbn', fqbn, dir], send);
+    return r.code === 0 ? { ok: true } : { ok: false, error: 'Build failed. See Problems for the details.' };
+  } finally {
+    fs.rmSync(path.dirname(dir), { recursive: true, force: true });
+  }
 });
 
 ipcMain.handle('cli:upload', async (e, files, fqbn) => {
@@ -267,18 +273,22 @@ ipcMain.handle('cli:upload', async (e, files, fqbn) => {
   const dir = writeSketch(files);
   if (!dir) return { ok: false, error: 'The project needs a .ino file.' };
 
-  send('Looking for the Arduino…');
-  const port = await pickPort(win);
-  if (!port) return { ok: false, error: NO_PORT };
-  send('Using port ' + port);
+  try {
+    send('Looking for the Arduino…');
+    const port = await pickPort(win);
+    if (!port) return { ok: false, error: NO_PORT };
+    send('Using port ' + port);
 
-  send('Compiling…');
-  let r = await run(['compile', '--warnings', 'more', '--fqbn', fqbn, dir], send);
-  if (r.code !== 0) return { ok: false, error: 'Build failed. See Problems for the details.' };
+    send('Compiling…');
+    let r = await run(['compile', '--warnings', 'more', '--fqbn', fqbn, dir], send);
+    if (r.code !== 0) return { ok: false, error: 'Build failed. See Problems for the details.' };
 
-  send('Uploading to ' + port + '…');
-  r = await run(['upload', '-p', port, '--fqbn', fqbn, dir], send);
-  return r.code === 0 ? { ok: true } : { ok: false, error: uploadHint(r.out) };
+    send('Uploading to ' + port + '…');
+    r = await run(['upload', '-p', port, '--fqbn', fqbn, dir], send);
+    return r.code === 0 ? { ok: true } : { ok: false, error: uploadHint(r.out) };
+  } finally {
+    fs.rmSync(path.dirname(dir), { recursive: true, force: true });
+  }
 });
 
 /* ---------- Boards Manager and Library Manager ---------- */

@@ -1,13 +1,13 @@
-# ide-alpha
+# IDE-beta
 
 A Windows desktop editor and dashboard for Arduino Uno projects.
 
-## Download alpha-4
+## Download IDE-beta
 
-- [Download the ZIP](https://github.com/misterlikyy/ide-for-aldruino-homebrew-/raw/refs/heads/main/downloads/latest/ide-alpha-4.zip)
-- [Download the portable EXE](https://github.com/misterlikyy/ide-for-aldruino-homebrew-/raw/refs/heads/main/downloads/latest/ide-alpha-4.exe)
+- [Download the ZIP](https://github.com/misterlikyy/ide-for-aldruino-homebrew-/raw/refs/heads/main/downloads/latest/IDE-beta.zip)
+- [Download the portable EXE](https://github.com/misterlikyy/ide-for-aldruino-homebrew-/raw/refs/heads/main/downloads/latest/IDE-beta.exe)
 
-Extract the ZIP and run `ide-alpha-4.exe`. The portable app runs without an installer.
+Extract the ZIP and run `IDE-beta.exe`. The portable app runs without an installer.
 
 ## Repository layout
 
