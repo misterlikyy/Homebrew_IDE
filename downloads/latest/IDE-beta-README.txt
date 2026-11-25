@@ -1,10 +1,11 @@
-IDE-beta — version 1.0.0-beta.2
+IDE-beta — version 1.0.0-beta.3
 
 Extract the ZIP and run IDE-beta.exe.
 
 The interface has a simpler Explorer, neutral dark colors, consistent spacing, and a quieter status bar. Explorer snippets have been removed.
 
 The top bar combines the app icon, IDE-beta title, and File/Edit menus. Bungee display lettering is bundled for offline use, with its license in source/fonts/OFL-Bungee.txt.
+The unused gap below the top bar has been removed.
 
 Fixed build and upload buttons staying disabled after errors, isolated temporary sketch folders for builds in multiple windows, and validation of incoming pin reports.
 
