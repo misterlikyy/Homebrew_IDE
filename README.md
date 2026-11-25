@@ -4,8 +4,8 @@ Arduino Uno desktop IDE and dashboard.
 
 ## Download
 
-- [Windows app (.exe)](downloads/ide-alpha-3.exe)
-- [ZIP package](downloads/ide-alpha-3.zip)
+- [Windows app (.exe)](downloads/ide-alpha-4.exe)
+- [ZIP package](downloads/ide-alpha-4.zip)
 
 ## Build from source
 

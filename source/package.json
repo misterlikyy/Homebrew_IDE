@@ -1,6 +1,6 @@
 {
   "name": "ide-alpha",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
@@ -25,7 +25,7 @@
       "icon": "icon.ico"
     },
     "portable": {
-      "artifactName": "ide-alpha-3.exe"
+      "artifactName": "ide-alpha-4.exe"
     }
   },
   "author": "ide-alpha",
