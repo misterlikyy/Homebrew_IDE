@@ -1,4 +1,4 @@
-IDE-beta — version 1.0.0-beta.4
+IDE-beta — version 1.0.0-beta.5
 
 Extract the ZIP and run IDE-beta.exe.
 
