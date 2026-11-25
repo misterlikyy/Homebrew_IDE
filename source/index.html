@@ -658,7 +658,10 @@ const VIEWS = { dash: 'Dash', board: 'Board', mon: 'Mon', log: 'Log', ext: 'Ext'
 let currentView = 'code';
 function show(view) {
   currentView = view;
-  if (view === 'proj' && typeof projRender === 'function') { palRender(); projRender(); }
+  if (view === 'proj' && typeof projRender === 'function') {
+    try { palRender(); projRender(); projPanes(); }
+    catch (e) { console.error('Project view failed to render:', e); flash('The Project view hit an error. Your sketch is still saved; check the app log for details.'); }
+  }
   if (view === 'ext' && typeof MG !== 'undefined' && !MG.loaded) { MG.loaded = true; mgSetKind(MG.kind); }
   if (view === 'code') setTimeout(() => { if (typeof returnFocus === 'function' && !openM) returnFocus(); }, 0);
   for (const [v, n] of Object.entries(VIEWS)) { $('#view' + n).hidden = view !== v; $('#tab' + n).setAttribute('aria-pressed', view === v); }
@@ -1203,10 +1206,10 @@ function buildBoard() {
     ['R16', 166, 62, 14, 8, 1, 182, 69, 'start', 'R16: serial link test'],
     ['R17', 166, 84, 14, 8, 1, 182, 91, 'start', 'R17: EEPROM test'],
     ['R6', 166, 112, 14, 8, 1, 184, 119, 'start', 'R6: digital outputs test'],
-    ['R7', 222, 112, 14, 8, 1, 240, 119, 'start', 'R7: digital inputs test'],
-    ['R8', 278, 112, 14, 8, 1, 296, 119, 'start', 'R8: PWM test'],
-    ['R9', 334, 112, 14, 8, 1, 352, 119, 'start', 'R9: analog inputs test'],
-    ['C8', 390, 112, 14, 8, 1, 408, 119, 'start', 'C8: power test']
+    ['R7', 166, 134, 14, 8, 1, 184, 141, 'start', 'R7: digital inputs test'],
+    ['R8', 166, 156, 14, 8, 1, 184, 163, 'start', 'R8: PWM test'],
+    ['R9', 166, 178, 14, 8, 1, 184, 185, 'start', 'R9: analog inputs test'],
+    ['C8', 166, 200, 14, 8, 1, 184, 207, 'start', 'C8: power test']
   ];
   parts.forEach(([k, x, y, w, h, rx, lx, ly, anchor, tip]) => {
     const g = $s('g', { class: 'lightg' }, svg), big = w > 20; g.addEventListener('click', () => openGuide(k));
@@ -1402,7 +1405,16 @@ function autoPinUpload(files) {
   if (!ino) return { ok: false, error: 'Automatic pin readings need a .ino sketch file.' };
   const all = copy.map(f => f.text).join('\n');
   const hasReporter = /\bvoid\s+reportPins\s*\([^)]*\)\s*\{/.test(all);
-  if (!hasReporter) ino.text = PINHELPER + '\n' + ino.text;
+  // Keep generated helper code in its own header. Arduino's sketch preprocessor
+  // can misread helper functions prepended before user includes/declarations.
+  if (!hasReporter) {
+    const helperName = 'ide_alpha_pin_reporter.h';
+    const include = '#include "' + helperName + '"';
+    if (!copy.some(f => f.name === helperName)) copy.push({ name: helperName, text: '#pragma once\n#include <Arduino.h>\n\n' + PINHELPER });
+    const includes = [...ino.text.matchAll(/^\s*#include[^\r\n]*(?:\r?\n|$)/gm)];
+    const at = includes.length ? includes[includes.length - 1].index + includes[includes.length - 1][0].length : 0;
+    ino.text = ino.text.slice(0, at) + include + '\n' + ino.text.slice(at);
+  }
   const result = ensurePinReporterCall(ino.text, +$('#baud').value || 9600);
   if (!result.ok) return result;
   ino.text = result.text;
@@ -1807,7 +1819,14 @@ const APINS = {};
   ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].forEach((k, i) => { APINS[k] = { x: AX + 250 + i * 22, y: AY + AH - 18, side: 'bottom', label: k }; });
 })();
 let projSel = null, projDrag = null;
-const circ = () => project.circuit || (project.circuit = { parts: [] });
+function circ() {
+  if (!project.circuit || !Array.isArray(project.circuit.parts)) project.circuit = { parts: [] };
+  // Older saved diagrams can contain a part type removed in a later build.
+  // Drop only entries that cannot be rendered so opening Project stays usable.
+  project.circuit.parts = project.circuit.parts.filter(p => p && PARTS[p.type] && typeof p.id === 'string');
+  project.circuit.parts.forEach(p => { if (!p.pins || typeof p.pins !== 'object') p.pins = {}; if (!p.props || typeof p.props !== 'object') p.props = {}; if (!Number.isFinite(+p.x)) p.x = 500; if (!Number.isFinite(+p.y)) p.y = 300; });
+  return project.circuit;
+}
 const partById = id => circ().parts.find(p => p.id === id);
 const newId = () => 'p' + (circ().parts.reduce((m, p) => Math.max(m, +p.id.slice(1) || 0), 0) + 1);
 const pinOfTerm = (p, t) => t[2].startsWith('i2c:') ? t[2].slice(4) : p.pins[t[0]];

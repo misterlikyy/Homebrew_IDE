@@ -231,6 +231,14 @@ ipcMain.handle('cli:installCore', async e => {
       if (plat !== 'win32') fs.chmodSync(path.join(cliDir(), 'arduino-cli'), 0o755);
       send('arduino-cli is installed.');
     }
+    // Keep an already-installed Uno core. Reinstalling it on every setup click
+    // wastes time and can look like the app forgot the previous download.
+    const installed = await run(['core', 'list']);
+    if (/arduino:avr\s+\S+/m.test(installed.out)) {
+      toolsOk = true;
+      send('Arduino Uno support is already installed.');
+      return { ok: true, alreadyInstalled: true };
+    }
     send('Downloading Arduino Uno support. This can take a few minutes…');
     let r = await run(['core', 'update-index'], send);
     if (r.missing) return { ok: false, error: 'arduino-cli could not be started after installing it.' };

@@ -28,5 +28,8 @@
       "artifactName": "ide-alpha-1.exe"
     }
   },
-  "author": "ide-alpha"
+  "author": "ide-alpha",
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
 }
