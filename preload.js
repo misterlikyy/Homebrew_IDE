@@ -1,0 +1,25 @@
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('uno', {
+  cliCheck: () => ipcRenderer.invoke('cli:check'),
+  installCore: () => ipcRenderer.invoke('cli:installCore'),
+  compile: (files, fqbn) => ipcRenderer.invoke('cli:compile', files, fqbn),
+  upload: (files, fqbn) => ipcRenderer.invoke('cli:upload', files, fqbn),
+  pkgSearch: (kind, q) => ipcRenderer.invoke('pkg:search', kind, q),
+  pkgInstalled: () => ipcRenderer.invoke('pkg:installed'),
+  pkgInstall: (kind, key) => ipcRenderer.invoke('pkg:install', kind, key),
+  pkgUpgrade: (kind, key) => ipcRenderer.invoke('pkg:upgrade', kind, key),
+  pkgRemove: (kind, key) => ipcRenderer.invoke('pkg:remove', kind, key),
+  pkgUrls: (action, url) => ipcRenderer.invoke('pkg:urls', action, url),
+  listBoards: () => ipcRenderer.invoke('pkg:boards'),
+  writeFile: (path, text) => ipcRenderer.invoke('file:write', path, text),
+  edit: c => ipcRenderer.send('edit:cmd', c),
+  agentKey: (action, key) => ipcRenderer.invoke('agent:key', action, key),
+  agentAsk: (text, system) => ipcRenderer.invoke('agent:ask', text, system),
+  newWindow: o => ipcRenderer.invoke('window:new', o),
+  focusWindow: id => ipcRenderer.send('window:focus', id),
+  describePorts: () => ipcRenderer.invoke('serial:describe'),
+  setPreferredPort: name => ipcRenderer.send('serial:prefer', name),
+  openFile: () => ipcRenderer.invoke('file:open'),
+  saveFile: (text, name) => ipcRenderer.invoke('file:save', text, name),
+  onOutput: fn => ipcRenderer.on('cli:output', (_, line) => fn(line))
+});
