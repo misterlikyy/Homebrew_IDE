@@ -145,7 +145,7 @@ function createWindow(o) {
   const opts = {
     width: sat ? 920 : 1280, height: sat ? 720 : 860, minWidth: sat ? 520 : 760, minHeight: sat ? 360 : 520,
     resizable: true, maximizable: true, minimizable: true,
-    title: '{:_IDE_:}', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
+    title: 'ide-alpha', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') }
   };
   const f = BrowserWindow.getFocusedWindow();
@@ -187,8 +187,8 @@ ipcMain.handle('ui:install', async e => {
   if (r.canceled) return { ok: false, cancelled: true };
   const f = r.filePaths[0], build = meta(f, 'ide-build'), api = meta(f, 'ide-api');
   if (!build) return { ok: false, error: 'That file is not an interface update for this app.' };
-  if (api > API_LEVEL) return { ok: false, error: 'This update needs a newer IDE.exe. Build the app again from the latest zip first.' };
-  if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'This update is not newer than the interface that is already built into IDE.exe (build ' + build + '). Nothing was changed.' };
+  if (api > API_LEVEL) return { ok: false, error: 'This update needs a newer ide-alpha-1.exe. Build the app again from the latest zip first.' };
+  if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'This update is not newer than the interface that is already built into ide-alpha-1.exe (build ' + build + '). Nothing was changed.' };
   fs.mkdirSync(uiDir(), { recursive: true }); fs.copyFileSync(f, path.join(uiDir(), 'index.html')); reloadAll();
   return { ok: true, build };
 });

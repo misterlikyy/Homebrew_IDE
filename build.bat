@@ -1,12 +1,40 @@
 @echo off
+setlocal
+cd /d "%~dp0"
+title Building ide-alpha-1.exe
+
 where node >nul 2>nul
 if errorlevel 1 (
-  echo Node.js is not installed. Get the LTS version from https://nodejs.org then run this again.
+  echo Node.js is not installed. Get the LTS version from https://nodejs.org, then run this file again.
   pause
   exit /b 1
 )
-call npm install
+
+echo Closing any running copy of ide-alpha-1.exe, Windows will not overwrite it while it is open...
+taskkill /f /im ide-alpha-1.exe >nul 2>nul
+
+if not exist "node_modules\electron-builder" (
+  echo Installing the build tools. This only happens the first time.
+  call npm install --no-audit --no-fund
+  if errorlevel 1 ( echo The install failed. Check your internet connection. & pause & exit /b 1 )
+) else (
+  echo Build tools are already installed, skipping.
+)
+
+echo Building the app. This takes a minute or two...
 call npm run dist
+if errorlevel 1 (
+  echo The build failed. Send me the last lines above.
+  pause
+  exit /b 1
+)
+
+set "DESK="
+for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESK=%%D"
+if defined DESK copy /y "dist\ide-alpha-1.exe" "%DESK%\ide-alpha-1.exe" >nul
+
 echo.
-echo Done. Your app is in the "dist" folder: IDE.exe
+echo Done. ide-alpha-1.exe is a finished app, no install and no Node.js needed to run it.
+if defined DESK echo A copy is on your Desktop: %DESK%\ide-alpha-1.exe
+echo You only need to build again when I send you a new alpha version.
 pause

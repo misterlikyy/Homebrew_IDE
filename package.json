@@ -1,6 +1,6 @@
 {
-  "name": "ide-app",
-  "version": "1.1.0",
+  "name": "ide-alpha",
+  "version": "1.0.0-alpha.1",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "com.unobench.app",
-    "productName": "IDE",
+    "productName": "ide-alpha",
     "files": [
       "main.js",
       "preload.js",
@@ -25,7 +25,8 @@
       "icon": "icon.ico"
     },
     "portable": {
-      "artifactName": "IDE.exe"
+      "artifactName": "ide-alpha-1.exe"
     }
-  }
+  },
+  "author": "ide-alpha"
 }
