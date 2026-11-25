@@ -22,4 +22,4 @@ jobs:
         with:
           name: IDE-windows
           path: dist/IDE.exe
-          if-no-files-found: erro
+          if-no-files-found: error
