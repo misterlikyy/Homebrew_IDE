@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('uno', {
   describePorts: () => ipcRenderer.invoke('serial:describe'),
   setPreferredPort: name => ipcRenderer.send('serial:prefer', name),
   openFile: () => ipcRenderer.invoke('file:open'),
+  openProject: () => ipcRenderer.invoke('project:open'),
+  saveProject: (value, path, saveAs) => ipcRenderer.invoke('project:save', value, path, saveAs),
   saveFile: (text, name) => ipcRenderer.invoke('file:save', text, name),
   onOutput: fn => ipcRenderer.on('cli:output', (_, line) => fn(line))
 });

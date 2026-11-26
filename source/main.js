@@ -53,7 +53,8 @@ async function needTools(fqbn) {
 /* Writes the project to a temporary sketch folder. The first .ino file becomes the main sketch file. */
 function writeSketch(files) {
   const list = typeof files === 'string' ? [{ name: 'uno_bench_sketch.ino', text: files }] : files;
-  const primary = list.findIndex(f => /\.ino$/i.test(f.name));
+  let primary = list.findIndex(f => /^main\.ino$/i.test(f.name));
+  if (primary < 0) primary = list.findIndex(f => /\.ino$/i.test(f.name));
   if (primary < 0) return null;
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'ide-build-'));
   const dir = path.join(parent, 'uno_bench_sketch');
@@ -124,7 +125,7 @@ function uploadHint(out) {
 }
 
 /* ---------- interface updates: a newer index.html can be installed without rebuilding the exe ---------- */
-const API_LEVEL = 1;            // raised only when the interface needs something new from main.js or preload.js
+const API_LEVEL = 2;
 const uiDir = () => path.join(app.getPath('userData'), 'ui');
 function meta(file, name) {
   try { const t = fs.readFileSync(file, 'utf8').slice(0, 4000), x = t.match(new RegExp('<meta name="' + name + '" content="(\\d+)"')); return x ? +x[1] : 0; } catch { return 0; }
@@ -138,10 +139,21 @@ const reloadAll = () => wins.forEach(w => w.loadFile(uiFile(), { query: w._query
 
 /* ---------- windows ---------- */
 const wins = new Map();                       // id -> BrowserWindow. Every window is its own workspace.
-function nextId() { let n = 1; while (wins.has(n)) n++; return n; }
+let windowSequence = 0;
+function nextId() { return ++windowSequence; }
 
 function createWindow(o) {
   o = o || {};
+  if (o.view === 'proj') {
+    for (const [existingId, existing] of wins) {
+      if (!existing.isDestroyed() && !existing._closing &&
+          existing._query.view === 'proj' && existing._query.owner === String(o.owner || '')) {
+        if (existing.isMinimized()) existing.restore();
+        existing.focus();
+        return existingId;
+      }
+    }
+  }
   const sat = !!o.view;                       // a view (Dashboard, Board, Monitor, Log) opened as its own window
   const id = nextId();
   const opts = {
@@ -150,10 +162,12 @@ function createWindow(o) {
     title: 'IDE-beta', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') }
   };
+  if (o.view === 'proj') Object.assign(opts, { width: 1360, height: 900, minWidth: 900, minHeight: 600 });
   const f = BrowserWindow.getFocusedWindow();
   if (f) { const b = f.getBounds(); opts.x = b.x + 34; opts.y = b.y + 34; }
   const win = new BrowserWindow(opts);
   wins.set(id, win);
+  win.on('close', () => { win._closing = true; });
   win.on('closed', () => wins.delete(id));
   win.on('focus', () => win.webContents.focus());      // keyboard goes to the page whenever the window is activated
   const query = { ws: String(id) }; if (sat) { query.view = String(o.view); query.owner = String(o.owner || ''); }
@@ -191,7 +205,14 @@ ipcMain.handle('ui:install', async e => {
   if (!build) return { ok: false, error: 'That file is not an interface update for this app.' };
   if (api > API_LEVEL) return { ok: false, error: 'This update needs a newer IDE-beta.exe. Download the latest app ZIP first.' };
   if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'The built-in interface is already as new as this update (build ' + build + ').' };
-  fs.mkdirSync(uiDir(), { recursive: true }); fs.copyFileSync(f, path.join(uiDir(), 'index.html')); reloadAll();
+  fs.mkdirSync(uiDir(), { recursive: true });
+  fs.copyFileSync(f, path.join(uiDir(), 'index.html'));
+  fs.copyFileSync(path.join(__dirname, 'workspace.js'), path.join(uiDir(), 'workspace.js'));
+  fs.mkdirSync(path.join(uiDir(), 'fonts'), { recursive: true });
+  for (const name of fs.readdirSync(path.join(__dirname, 'fonts'))) {
+    fs.copyFileSync(path.join(__dirname, 'fonts', name), path.join(uiDir(), 'fonts', name));
+  }
+  reloadAll();
   return { ok: true, build };
 });
 ipcMain.handle('ui:reset', () => { fs.rmSync(path.join(uiDir(), 'index.html'), { force: true }); reloadAll(); return { ok: true }; });
@@ -357,6 +378,59 @@ ipcMain.handle('pkg:urls', async (e, action, url) => {
 ipcMain.handle('file:open', async e => {
   const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { filters: [{ name: 'Arduino files', extensions: ['ino', 'h', 'hpp', 'cpp', 'c'] }], properties: ['openFile'] });
   return r.canceled ? null : { name: path.basename(r.filePaths[0]), text: fs.readFileSync(r.filePaths[0], 'utf8'), path: r.filePaths[0] };
+});
+function validateProject(value) {
+  if (!value || value.format !== 'ide-beta-project' || value.version !== 1 ||
+      !Array.isArray(value.files) || !value.files.length) throw new Error('Choose an IDE-beta project file.');
+  const names = new Set();
+  for (const file of value.files) {
+    if (!file || !/^[A-Za-z0-9_][\w.-]*\.(ino|h|hpp|cpp|c)$/i.test(file.name) ||
+        typeof file.text !== 'string' || names.has(file.name.toLowerCase())) throw new Error('The project contains an invalid or duplicate file.');
+    names.add(file.name.toLowerCase());
+  }
+  if (!value.files.some(file => /\.ino$/i.test(file.name))) throw new Error('The project needs at least one .ino file.');
+  return value;
+}
+ipcMain.handle('project:open', async e => {
+  try {
+    const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
+      title: 'Open project or Arduino sketch files',
+      filters: [{ name: 'IDE-beta projects and sketches', extensions: ['ideproj', 'ino', 'h', 'hpp', 'cpp', 'c'] }],
+      properties: ['openFile', 'multiSelections']
+    });
+    if (result.canceled) return { cancelled: true };
+    const bundles = result.filePaths.filter(file => /\.ideproj$/i.test(file));
+    if (bundles.length) {
+      if (result.filePaths.length !== 1) throw new Error('Open one .ideproj project at a time.');
+      const file = bundles[0];
+      return { ok: true, project: validateProject(JSON.parse(fs.readFileSync(file, 'utf8'))), path: file };
+    }
+    const files = result.filePaths.map(file => ({ name: path.basename(file), text: fs.readFileSync(file, 'utf8') }));
+    const value = validateProject({ format: 'ide-beta-project', version: 1,
+      name: path.basename(result.filePaths[0], path.extname(result.filePaths[0])), files,
+      open: files.map(file => file.name), active: files[0].name });
+    return { ok: true, project: value, path: '' };
+  } catch (error) { return { ok: false, error: error.message }; }
+});
+ipcMain.handle('project:save', async (e, value, existingPath, saveAs) => {
+  let temporary = '';
+  try {
+    validateProject(value);
+    let file = existingPath && /\.ideproj$/i.test(existingPath) ? existingPath : '';
+    if (!file || saveAs) {
+      const result = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
+        title: 'Save IDE-beta project', defaultPath: file || (value.name || 'Arduino project').replace(/[<>:"/\\|?*]/g, '_') + '.ideproj',
+        filters: [{ name: 'IDE-beta project', extensions: ['ideproj'] }]
+      });
+      if (result.canceled) return { cancelled: true };
+      file = /\.ideproj$/i.test(result.filePath) ? result.filePath : result.filePath + '.ideproj';
+    }
+    temporary = file + '.' + require('crypto').randomUUID() + '.tmp';
+    fs.writeFileSync(temporary, JSON.stringify(value, null, 2), { flag: 'wx' });
+    fs.renameSync(temporary, file);
+    return { ok: true, path: file };
+  } catch (error) { return { ok: false, error: error.message }; }
+  finally { if (temporary && fs.existsSync(temporary)) fs.rmSync(temporary, { force: true }); }
 });
 ipcMain.handle('file:save', async (e, text, name) => {
   const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), { defaultPath: name || 'sketch.ino', filters: [{ name: 'Arduino files', extensions: ['ino', 'h', 'hpp', 'cpp', 'c'] }] });
