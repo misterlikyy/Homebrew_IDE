@@ -61,8 +61,16 @@ jobs:
       - name: Check packaged Linux AppImage startup
         if: runner.os == 'Linux'
         run: |
-          chmod +x dist/IDE-beta-linux-x64.AppImage
-          xvfb-run -a env APPIMAGE_EXTRACT_AND_RUN=1 ./dist/IDE-beta-linux-x64.AppImage --smoke-test
+          chmod +x dist/IDE-beta-linux-x86_64.AppImage
+          xvfb-run -a env APPIMAGE_EXTRACT_AND_RUN=1 ./dist/IDE-beta-linux-x86_64.AppImage --smoke-test
+      - name: Check packaged Linux archive startup
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist/archive-check
+          tar -xzf dist/IDE-beta-linux-x64.tar.gz -C dist/archive-check
+          APP=$(find dist/archive-check -type f -name ide-beta -print -quit)
+          test -n "$APP"
+          xvfb-run -a "$APP" --smoke-test
       - name: Create Windows ZIP
         if: runner.os == 'Windows'
         shell: pwsh
@@ -73,7 +81,7 @@ jobs:
           path: |
             source/dist/IDE-beta.exe
             source/dist/IDE-beta.zip
-            source/dist/IDE-beta-linux-x64.AppImage
+            source/dist/IDE-beta-linux-x86_64.AppImage
             source/dist/IDE-beta-linux-x64.tar.gz
           if-no-files-found: error
       - name: Upload check diagnostics
@@ -104,12 +112,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x64.AppImage IDE-beta-linux-x64.tar.gz; do
+          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x86_64.AppImage IDE-beta-linux-x64.tar.gz; do
             test -s "release/$file"
           done
           cp downloads/latest/IDE-beta-README.txt release/IDE-beta-README.txt
           VERSION=$(node -p "require('./source/package.json').version")
-          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nLinux x86-64: IDE-beta-linux-x64.AppImage or IDE-beta-linux-x64.tar.gz.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
+          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nLinux x86-64: IDE-beta-linux-x86_64.AppImage or IDE-beta-linux-x64.tar.gz.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
           if gh api "repos/$GH_REPO/git/refs/tags/latest" >/dev/null 2>&1; then
             gh api --method PATCH "repos/$GH_REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true >/dev/null
           else

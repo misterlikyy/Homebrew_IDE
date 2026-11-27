@@ -6,7 +6,7 @@ A Windows and Linux desktop editor and dashboard for Arduino Uno projects.
 
 - [Windows portable EXE](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.exe)
 - [Windows ZIP](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.zip)
-- [Linux x86-64 AppImage](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x64.AppImage)
+- [Linux x86-64 AppImage](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.AppImage)
 - [Linux x86-64 portable archive](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x64.tar.gz)
 
 On Windows, extract the ZIP and run `IDE-beta.exe`.
@@ -14,8 +14,8 @@ On Windows, extract the ZIP and run `IDE-beta.exe`.
 On Linux, make the AppImage executable and open it.
 
 ```sh
-chmod +x IDE-beta-linux-x64.AppImage
-./IDE-beta-linux-x64.AppImage
+chmod +x IDE-beta-linux-x86_64.AppImage
+./IDE-beta-linux-x86_64.AppImage
 ```
 
 If your distribution has no FUSE 2 runtime, run the AppImage with `--appimage-extract-and-run`, or extract the portable archive and run `ide-beta` from the extracted folder. A graphical Linux desktop is required. Linux builds target x86-64 and are checked on Ubuntu 22.04.

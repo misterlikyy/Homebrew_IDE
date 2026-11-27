@@ -2,7 +2,7 @@ IDE-beta — version 1.0.0-beta.7 (Windows and Linux)
 
 Extract the ZIP and run IDE-beta.exe.
 
-Linux x86-64: make IDE-beta-linux-x64.AppImage executable and run it. If FUSE 2 is unavailable, use --appimage-extract-and-run or the portable tar.gz archive. After extracting the archive, run ide-beta from the extracted folder.
+Linux x86-64: make IDE-beta-linux-x86_64.AppImage executable and run it. If FUSE 2 is unavailable, use --appimage-extract-and-run or the portable tar.gz archive. After extracting the archive, run ide-beta from the extracted folder.
 
 Linux serial-port permission setup: https://support.arduino.cc/hc/en-us/articles/360016495679-Fix-port-access-on-Linux
 
