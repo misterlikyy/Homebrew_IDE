@@ -1,11 +1,14 @@
 {
   "name": "ide-beta",
-  "version": "1.0.0-beta.6",
+  "version": "1.0.0-beta.7",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win portable"
+    "dist": "electron-builder --win portable",
+    "dist:win": "electron-builder --win portable --x64",
+    "dist:linux": "electron-builder --linux AppImage tar.gz --x64",
+    "check:ui": "electron scripts/smoke.cjs"
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -28,6 +31,13 @@
     },
     "portable": {
       "artifactName": "IDE-beta.exe"
+    },
+    "linux": {
+      "target": ["AppImage", "tar.gz"],
+      "category": "Development",
+      "icon": "icon.png",
+      "executableName": "ide-beta",
+      "artifactName": "IDE-beta-linux-${arch}.${ext}"
     }
   },
   "author": "IDE-beta",

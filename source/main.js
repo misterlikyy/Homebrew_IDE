@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 // Keep existing projects, settings, and downloaded upload tools across the rename.
-app.setPath('userData', path.join(app.getPath('appData'), 'ide-alpha'));
+const startupCheck = process.argv.includes('--smoke-test');
+app.setPath('userData', startupCheck ? fs.mkdtempSync(path.join(os.tmpdir(), 'ide-startup-')) : path.join(app.getPath('appData'), 'ide-alpha'));
 
 /* ---------- arduino-cli: use the copy this app installed, or the one on the PATH ---------- */
 const cliDir = () => path.join(app.getPath('userData'), 'arduino-cli');
@@ -119,6 +120,7 @@ async function pickPort(win) {
 }
 const NO_PORT = 'Could not find the serial port of your Arduino. Plug it in and press Connect Arduino first, so the app can see which port it is on.';
 function uploadHint(out) {
+  if (process.platform === 'linux' && /permission denied|access is denied/i.test(out)) return 'Linux denied access to the Arduino port. Check your account’s serial-port group permissions using the Linux setup instructions in the README.';
   if (/can't open device|access is denied|permission denied|busy/i.test(out)) return 'The port is busy. Close the Arduino IDE, any other serial monitor and other windows of this app that use the board, then try again.';
   if (/not in sync|stk500|programmer is not responding/i.test(out)) return 'The board did not answer. Check that it is an Arduino Uno, and try pressing the reset button on the board just before uploading.';
   return 'Upload failed. Read the messages above for the reason.';
@@ -157,6 +159,7 @@ function createWindow(o) {
   const sat = !!o.view;                       // a view (Dashboard, Board, Monitor, Log) opened as its own window
   const id = nextId();
   const opts = {
+    ...(startupCheck ? { show: false } : {}),
     width: sat ? 920 : 1280, height: sat ? 720 : 860, minWidth: sat ? 520 : 760, minHeight: sat ? 360 : 520,
     resizable: true, maximizable: true, minimizable: true,
     title: 'IDE-beta', autoHideMenuBar: true, backgroundColor: '#0A1426', icon: path.join(__dirname, 'icon.png'),
@@ -172,7 +175,16 @@ function createWindow(o) {
   win.on('focus', () => win.webContents.focus());      // keyboard goes to the page whenever the window is activated
   const query = { ws: String(id) }; if (sat) { query.view = String(o.view); query.owner = String(o.owner || ''); }
   win._query = query;
-  win.loadFile(uiFile(), { query });
+  const loaded = win.loadFile(uiFile(), { query });
+  if (startupCheck) {
+    const timeout = setTimeout(() => { console.error('Startup check timed out'); app.exit(1); }, 30000);
+    loaded.then(() => win.webContents.executeJavaScript("Boolean(window.uno && navigator.serial && typeof openWorkspaceSetup === 'function' && document.querySelector('#workspaceDialog').open)"))
+      .then(ok => {
+        clearTimeout(timeout);
+        console.log(JSON.stringify({ startup: !!ok, platform: process.platform, version: app.getVersion() }));
+        app.exit(ok ? 0 : 1);
+      }).catch(error => { clearTimeout(timeout); console.error(error.message); app.exit(1); });
+  }
   return id;
 }
 

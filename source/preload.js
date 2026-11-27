@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('uno', {
+  platform: process.platform,
   cliCheck: () => ipcRenderer.invoke('cli:check'),
   installCore: () => ipcRenderer.invoke('cli:installCore'),
   compile: (files, fqbn) => ipcRenderer.invoke('cli:compile', files, fqbn),

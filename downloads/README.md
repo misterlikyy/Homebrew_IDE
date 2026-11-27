@@ -1,8 +1,9 @@
-# Windows downloads
+# Windows and Linux downloads
 
-The current release is **IDE-beta**, version 1.0.0-beta.6.
+The current release is **IDE-beta**, version 1.0.0-beta.7.
 
-- [Latest EXE, ZIP, and release notes](latest/)
+- [Latest Windows and Linux downloads](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest)
+- [Download links and instructions](latest/)
 - [Older published versions](archive/)
 
-For the ZIP package, extract the files and open the EXE.
+The Windows ZIP contains the EXE. Linux downloads are provided as an x86-64 AppImage and tar.gz archive. Future app changes on main rebuild both versions automatically.

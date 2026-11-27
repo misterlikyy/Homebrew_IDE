@@ -1,0 +1,123 @@
+name: Build and publish Windows and Linux
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'source/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            command: dist:win
+          - os: ubuntu-22.04
+            platform: linux
+            command: dist:linux
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: source
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libgtk-3-0 libnss3 libasound2 libgbm1 libfuse2 xvfb
+      - name: Install app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check Windows project and Visualization workflow
+        if: runner.os == 'Windows'
+        run: npm run check:ui
+      - name: Check Linux project and Visualization workflow
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run check:ui
+      - name: Build downloads
+        run: npm run ${{ matrix.command }} -- --publish never
+      - name: Check packaged Windows startup
+        if: runner.os == 'Windows'
+        run: ./dist/win-unpacked/IDE-beta.exe --smoke-test
+      - name: Check packaged Linux AppImage startup
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x dist/IDE-beta-linux-x64.AppImage
+          xvfb-run -a env APPIMAGE_EXTRACT_AND_RUN=1 ./dist/IDE-beta-linux-x64.AppImage --smoke-test
+      - name: Create Windows ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -LiteralPath dist/IDE-beta.exe,../downloads/latest/IDE-beta-README.txt -DestinationPath dist/IDE-beta.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-x64
+          path: |
+            source/dist/IDE-beta.exe
+            source/dist/IDE-beta.zip
+            source/dist/IDE-beta-linux-x64.AppImage
+            source/dist/IDE-beta-linux-x64.tar.gz
+          if-no-files-found: error
+      - name: Upload check diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-diagnostics
+          path: source/dist/smoke-error.*
+          if-no-files-found: ignore
+
+  publish:
+    name: Publish both platforms
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-x64'
+          path: release
+          merge-multiple: true
+      - name: Publish the current Windows and Linux builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x64.AppImage IDE-beta-linux-x64.tar.gz; do
+            test -s "release/$file"
+          done
+          cp downloads/latest/IDE-beta-README.txt release/IDE-beta-README.txt
+          VERSION=$(node -p "require('./source/package.json').version")
+          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nLinux x86-64: IDE-beta-linux-x64.AppImage or IDE-beta-linux-x64.tar.gz.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
+          if gh api "repos/$GH_REPO/git/refs/tags/latest" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true >/dev/null
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" -f ref=refs/tags/latest -f sha="$GITHUB_SHA" >/dev/null
+          fi
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest --title "IDE-beta — Windows and Linux" --notes-file release-notes.md --prerelease
+          else
+            gh release create latest --title "IDE-beta — Windows and Linux" --notes-file release-notes.md --prerelease
+          fi
+          gh release upload latest release/* --clobber
