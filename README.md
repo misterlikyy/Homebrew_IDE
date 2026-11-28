@@ -1,75 +1,139 @@
 # IDE-beta
 
-A Windows and Linux desktop editor and dashboard for Arduino Uno projects.
+A desktop editor, dashboard, and circuit visualization workspace for Arduino Uno projects on **Windows and Linux**.
 
-## Download IDE-beta
+[Latest release](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest) · [Downloads](#downloads) · [Getting started](#getting-started) · [Build from source](#build-from-source)
 
-- [Windows portable EXE](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.exe)
-- [Windows ZIP](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.zip)
-- [Ubuntu / Debian DEB (amd64)](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-amd64.deb)
-- [Fedora RPM (x86_64)](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.rpm)
-- [Linux x86-64 AppImage](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.AppImage)
-- [Linux x86-64 portable archive](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x64.tar.gz)
+## Downloads
 
-On Windows, extract the ZIP and run `IDE-beta.exe`.
+All downloads below are for **64-bit x86 PCs**.
 
-For Ubuntu/Debian, download the DEB and install it with:
+| System | Download | Format |
+| --- | --- | --- |
+| Windows | [Portable app](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.exe) | `.exe` |
+| Windows | [ZIP bundle](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.zip) | `.zip` |
+| Ubuntu / Debian | [Installer](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-amd64.deb) | `.deb` |
+| Fedora | [Installer](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.rpm) | `.rpm` |
+| Linux — portable | [AppImage](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.AppImage) | `.AppImage` |
+| Linux — portable | [Archive](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x64.tar.gz) | `.tar.gz` |
+
+See the [release page](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest) for release notes and the source commit used for the build.
+
+## Installation
+
+### Windows
+
+Run `IDE-beta.exe`, or extract the ZIP and run the EXE inside.
+
+### Ubuntu / Debian
+
+From the folder containing the downloaded DEB:
 
 ```sh
 sudo apt install ./IDE-beta-linux-amd64.deb
 ```
 
-For Fedora, download the RPM and install it with:
+### Fedora
+
+From the folder containing the downloaded RPM:
 
 ```sh
 sudo dnf install ./IDE-beta-linux-x86_64.rpm
 ```
 
-Then open **IDE-beta** from your application menu, or run `ide-beta`. These packages install dependencies through your distribution's package manager. Remove the app with `sudo apt remove ide-beta` or `sudo dnf remove ide-beta`. Installation, menu entry, startup and removal are checked on Ubuntu 24.04, Debian 13 and Fedora 45 in CI containers; other distribution versions are not covered by those checks.
+After installing either package, open **IDE-beta** from your application menu or run `ide-beta`. Dependencies are installed through your package manager. To uninstall, use `sudo apt remove ide-beta` or `sudo dnf remove ide-beta`.
 
-For a portable Linux version, make the AppImage executable and open it.
+### Portable Linux
+
+Make the AppImage executable, then launch it:
 
 ```sh
 chmod +x IDE-beta-linux-x86_64.AppImage
 ./IDE-beta-linux-x86_64.AppImage
 ```
 
-If your distribution has no FUSE 2 runtime, run the AppImage with `--appimage-extract-and-run`, or extract the portable archive and run `ide-beta` from the extracted folder. A graphical Linux desktop is required. Linux builds target x86-64 and are checked on Ubuntu 22.04.
+If FUSE 2 is unavailable, add `--appimage-extract-and-run` to the launch command. Alternatively, extract the `.tar.gz` archive and run `ide-beta` from the extracted folder. A graphical Linux desktop is required.
 
-Linux accounts need permission to access the Arduino serial port. Follow [Arduino's Linux port-access instructions](https://support.arduino.cc/hc/en-us/articles/360016495679-Fix-port-access-on-Linux) if connection or upload reports permission denied. Set up upload tools from the app to install the Linux Arduino CLI and Uno core.
+**Linux serial access:** if connection or upload reports permission denied, follow [Arduino's port-access instructions](https://support.arduino.cc/hc/en-us/articles/360016495679-Fix-port-access-on-Linux).
 
-## Projects and Visualization
+## Getting started
 
-Choose your tabs at startup, then open a sketch or `.ideproj` project, continue your workspace, or create a new project. New projects can contain multiple `.ino` files, with `setup()` and `loop()` in `main.ino` and supporting code in the other files.
+1. Launch the app and choose which workspace tabs you want.
+2. Open a sketch or `.ideproj` project, continue your previous workspace, or create a new project.
+3. Connect your Uno over USB, select **Arduino Uno**, and choose its serial port.
+4. Use **Tools → Set Up Upload Tools** to install Arduino CLI and Uno support if needed.
+5. Write your sketch, then use **Run → Build** or **Run → Upload**.
 
-**File → Save Project** saves the code, open file tabs, workspace tab choices, and diagram together. Use **File → New / Open Project** to reopen it.
-
-Open **Visualization** from the top bar for a separate circuit window. **Build from code** reads the project's files, and the parts library lets you add and wire components. Boards Manager and Library Manager are available from **Tools**.
-
-## Download firmware from an Uno
-
-Choose **Arduino Uno**, then **Run → Download Firmware from Board**. Choose where to save the `.hex` backup. The IDE temporarily closes its serial monitor, reads flash through the Uno bootloader, validates the HEX checksums, and shows the backup in a read-only viewer. Your editor files stay unchanged. Reading briefly resets the board; it does not erase or write flash.
-
-The board stores compiled machine code, **not the original `.ino` sketch**: source, comments, and original variable names cannot be recovered by this feature. This is a flash backup only (EEPROM is not included), and may include bootloader bytes. Boards with read protection or an incompatible bootloader may not allow readback. The feature currently supports the classic ATmega328P Uno over USB on Windows and Linux.
-
-## Repository layout
-
-| Folder | Contents |
+| Shortcut | Action |
 | --- | --- |
-| [source/](source/) | App code, icons, example sketch, and build scripts |
-| [downloads/latest/](downloads/latest/) | Current download links and release notes |
-| [GitHub Releases](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest) | Current Windows and Linux binaries |
-| [downloads/archive/](downloads/archive/) | Older published versions, grouped by alpha number |
-| [.github/workflows/](.github/workflows/) | Windows and Linux build automation |
+| `Ctrl+Shift+B` | Build |
+| `Ctrl+Shift+U` | Upload |
+| `Ctrl+S` | Save; saves the whole project when it contains multiple files |
+
+## Projects and tools
+
+### Multi-file projects
+
+A project can contain multiple sketch files. Keep `setup()` and `loop()` in `main.ino`, with supporting code in the other files; the `.ino` files form one Arduino program.
+
+**File → Save Project** stores your code, open file tabs, workspace tab choices, and visualization together in an `.ideproj` file. Reopen it with **File → New / Open Project**.
+
+### Visualization and workspace
+
+Open **Visualization** from the top bar for a separate circuit window. Use **Build from code** to create a diagram from your project's files, or add and wire components from the parts library.
+
+- **Dashboard, Board, Serial Monitor, and Serial Log** are available as workspace views.
+- **View → Choose Workspace Tabs** changes which views appear.
+- **Tools → Boards Manager / Library Manager** manages board packages and libraries.
+
+### Firmware backups
+
+Select **Arduino Uno**, then choose **Run → Download Firmware from Board** to save a `.hex` flash backup and open it in a read-only viewer. The IDE validates the HEX checksums and keeps your editor files unchanged.
+
+The backup contains **compiled firmware**; it cannot recover the original `.ino` source, comments, or variable names. EEPROM is not included, and the backup may contain bootloader bytes.
+
+Readback supports the classic **ATmega328P Uno over USB** on Windows and Linux. Reading briefly resets the board without erasing or writing flash. Read protection or an incompatible bootloader may prevent readback.
 
 ## Build from source
 
-Install Node.js 22 or newer. On Windows, open [source/](source/) and double-click `build.bat`. On Linux, run `sh source/build.sh`.
+Use **Node.js 22 or newer**. Build output is written to `source/dist/`.
 
-Inside `source/`, run `npm ci`, then `npm run dist:win` on Windows or `npm run dist:linux` on Linux. Linux builds produce AppImage, tar.gz, DEB and RPM files. To build RPM, install `rpm` on Ubuntu/Debian (`sudo apt install rpm`), or `rpm-build` on Fedora (`sudo dnf install rpm-build`).
+| Platform | Build script | Output |
+| --- | --- | --- |
+| Windows | Double-click [source/build.bat](source/build.bat) | Portable EXE |
+| Linux | Run `sh source/build.sh` | AppImage, archive, DEB, and RPM |
 
-## Automatic updates
+For Linux RPM builds, install `rpm` on Ubuntu/Debian or `rpm-build` on Fedora first.
 
-Every app or workflow change pushed to `main` starts **Actions → Build and publish Windows and Linux**. Both platforms must build and pass their UI and packaged-startup checks, and the DEB/RPM packages must pass installation, launch and removal checks, before the `latest` release downloads are updated. All six download formats are updated together. The workflow can also be started manually with **Run workflow**.
+For manual builds, run `npm ci` inside `source/`, then `npm run dist:win` on Windows or `npm run dist:linux` on Linux.
 
-Downloads live in GitHub Releases so new builds update the same links without adding large binaries to every source commit. The release notes identify the source commit used for both platforms.
+## Releases and checks
+
+App and workflow changes pushed to `main` start [**Build and publish Windows and Linux**](https://github.com/misterlikyy/Homebrew_IDE/actions/workflows/build-desktop.yml). It can also be started manually with **Run workflow**.
+
+All six download formats are published together after these checks pass:
+
+| Check | Environment |
+| --- | --- |
+| Firmware tests and project / Visualization UI checks | Windows and Linux |
+| Packaged app startup | Windows, Linux AppImage, and Linux archive |
+| DEB installation, menu entry, launch, and removal | Ubuntu 24.04 and Debian 13 |
+| RPM installation, menu entry, launch, and removal | Fedora 45 |
+
+Linux builds run on Ubuntu 22.04; distribution installation checks run in CI containers. Other distribution versions and physical Arduino USB operations are outside those checks.
+
+Download links stay the same across releases. This workflow publishes new builds; it does not automatically install updates on your computer.
+
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| [source/](source/) | App code, icons, fonts, tests, and build scripts |
+| [downloads/latest/](downloads/latest/) | Current download links and usage notes |
+| [downloads/archive/](downloads/archive/) | Older published builds, grouped by version |
+| [.github/workflows/](.github/workflows/) | Build, test, and release automation |
+| [GitHub Releases](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest) | Current Windows and Linux packages |
+
+## License
+
+[MIT](LICENSE) © 2026 misterlikyy. Bundled fonts include their own licenses in [source/fonts/](source/fonts/).
