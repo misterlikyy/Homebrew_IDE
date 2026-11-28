@@ -137,6 +137,7 @@ app.whenReady().then(async () => {
     `);
     await editor.webContents.executeJavaScript('ideCollaboration.session.delay = 1000; ideCollaboration.session.socket.close();');
     await until(editor, '!ideCollaboration.session.ready');
+    await editor.webContents.executeJavaScript("if (!$('#collabEnd').disabled || !$('#collabRotate').disabled) throw new Error('Offline session controls should be disabled');");
     await editor.webContents.executeJavaScript("openFile('main.ino'); $('#code').value += '\\n// offline owner'; onEdit();");
     await guest.webContents.executeJavaScript("$('#code').value += '\\n// while owner offline'; onEdit();");
     await until(editor, 'ideCollaboration.session.status === "connected"');

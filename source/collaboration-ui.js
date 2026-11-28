@@ -57,7 +57,7 @@
     onLocalChange() {
       if (!session || applying || changing) return;
       if (controller.readOnly) return;
-      try { changing = true; session.sync(project); backup(); } catch (e) { error(e.message); } finally { changing = false; }
+      try { changing = true; session.sync(project); backup(); } catch (e) { backup(); error(e.message); } finally { changing = false; }
     },
     onCaret() {
       renderCursors(); clearTimeout(presenceTimer);
@@ -71,6 +71,7 @@
     $('#code').readOnly = controller.readOnly; $('#newFileBtn').disabled = controller.readOnly;
     const owner = session?.role === 'owner';
     $('#collabOwner').hidden = !owner; $('#collabRotate').hidden = !owner; $('#collabEnd').hidden = !owner;
+    $('#collabRotate').disabled = $('#collabEnd').disabled = !session?.ready;
     $('#collabInviteHint').textContent = owner && !keys.editor ? 'You reopened this session with its owner code. Use Replace guest invitations to issue new guest codes.' : 'Share only the invitation for the access you want to grant.';
     if (!session) { $('#shareProject').textContent = 'Share project'; overlay.replaceChildren(); return; }
     const labels = { connecting: 'Connecting…', reconnecting: 'Reconnecting…', connected: 'Connected · saved', saving: 'Saving changes…', offline: 'Offline · local draft', ended: 'Session ended' };
@@ -175,7 +176,7 @@
     try { const draft = JSON.parse(localStorage.getItem('ide.collab-recovery.' + WS)); if (!draft) throw Error('No recovered draft is available.'); replaceWorkspace(draft, draft.projectPath); dialog.close(); }
     catch (e) { error(e.message); }
   };
-  $('#collabLeave').onclick = async () => { if (await askConfirm('Leave this session? A local copy of the code will stay open. Unsent edits are backed up locally.', 'Leave session')) leave(); };
+  $('#collabLeave').onclick = async () => { if (await askConfirm('Leave this session? A local copy of the code will stay open. Unsent edits are backed up locally.' + (session?.role === 'owner' ? ' Keep your owner recovery code if you want to reopen this session later.' : ''), 'Leave session')) leave(); };
   $('#collabRotate').onclick = async () => { if (await askConfirm('Replace both guest invitations? Current editors and viewers will be disconnected and need the new codes.', 'Replace invitations')) session?.send({ t: 'rotate' }); };
   $('#collabEnd').onclick = async () => { if (await askConfirm('End this session for everyone and delete its server copy? Each participant keeps their local draft.', 'End session')) session?.send({ t: 'end' }); };
   dialog.querySelectorAll('[data-copy]').forEach(button => { button.onclick = async () => {

@@ -61,7 +61,7 @@ class Session {
           this.options.beforeReject?.(); this.pending = []; this.awaiting.clear(); this.setDocument(message.state);
           this.options.onProject?.(model.snapshot(this.doc)); this.notify('connected'); this.options.onError?.(message.message + ' Your unsent version was backed up locally.');
         }
-      } catch (error) { this.options.onError?.('Could not synchronize this session: ' + error.message); this.close(); }
+      } catch (error) { this.notify('ended', 'Could not synchronize this session: ' + error.message); this.close(); this.options.onEnded?.(); }
     };
     socket.onerror = () => {};
     socket.onclose = event => {
