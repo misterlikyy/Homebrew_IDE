@@ -1,6 +1,6 @@
 {
   "name": "ide-beta",
-  "version": "1.0.0-beta.10",
+  "version": "1.0.0-beta.11",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "predist:linux": "npm run build:collab",
     "precheck:ui": "npm run build:collab",
     "collab:server": "node collaboration/server.cjs",
-    "collab:bundle": "node scripts/package-mint.cjs",
+    "collab:bundle": "node scripts/package-server.cjs",
     "start": "electron .",
     "dist": "electron-builder --win portable",
     "dist:win": "electron-builder --win portable --x64",

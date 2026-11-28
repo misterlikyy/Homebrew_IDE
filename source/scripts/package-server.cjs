@@ -1,10 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const destination = path.join(root, 'dist', 'server-mint');
+const destination = path.join(root, 'dist', 'server-linux');
 fs.mkdirSync(destination, { recursive: true });
 fs.copyFileSync(path.join(root, '..', 'LICENSE'), path.join(destination, 'LICENSE'));
 for (const name of ['package.json', 'package-lock.json']) fs.copyFileSync(path.join(root, name), path.join(destination, name));
 fs.cpSync(path.join(root, 'collaboration'), path.join(destination, 'collaboration'), { recursive: true });
-fs.cpSync(path.join(root, 'hosting', 'mint'), destination, { recursive: true });
-console.log('Mint server package prepared in ' + destination);
+fs.cpSync(path.join(root, 'hosting', 'linux'), destination, { recursive: true });
+console.log('Linux server package prepared in ' + destination);

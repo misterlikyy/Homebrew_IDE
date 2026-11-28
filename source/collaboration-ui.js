@@ -23,7 +23,7 @@
     <label for="collabName">Your display name</label><input id="collabName" maxlength="40" autocomplete="nickname" placeholder="Your name">
     <div id="collabSetup">
       <h3>Create a session</h3>
-      <p class="collab-note">Enter your collaboration server address. A Linux Mint server setup is included in the repository.</p>
+      <p class="collab-note">No public online server is hosted by this project. Enter your own local or self-hosted server address. Setup for Ubuntu, Debian, Fedora and Linux Mint is included in the repository.</p>
       <label for="collabServer">Server address</label><input id="collabServer" placeholder="https://collab.example.com" spellcheck="false">
       <label for="collabKey">Server creation key (from server setup)</label><input id="collabKey" type="password" autocomplete="off" placeholder="Not needed for a localhost test">
       <div class="collab-actions"><button id="collabCreate" class="primary">Share this project</button></div>

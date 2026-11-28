@@ -50,15 +50,16 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Check firmware and collaboration behavior
         run: npm test
-      - name: Prepare and check the Linux Mint collaboration server
+      - name: Prepare and check the Linux collaboration server
         if: runner.os == 'Linux'
         run: |
-          node scripts/package-mint.cjs
-          COLLAB_CREATE_KEY=ci-configuration-validation-only docker compose -f dist/server-mint/compose.yaml config --quiet
-          bash -n dist/server-mint/setup-mint.sh dist/server-mint/stop-server.sh
-          docker build -t ide-beta-collaboration-check dist/server-mint
+          node scripts/package-server.cjs
+          COLLAB_CREATE_KEY=ci-configuration-validation-only docker compose -f dist/server-linux/compose.yaml config --quiet
+          for script in dist/server-linux/*.sh; do bash -n "$script"; done
+          docker build -t ide-beta-collaboration-check dist/server-linux
           node scripts/check-server-container.cjs
-          (cd dist/server-mint && zip -qr ../IDE-beta-collaboration-server-mint.zip .)
+          (cd dist/server-linux && zip -qr ../IDE-beta-collaboration-server-linux.zip .)
+          cp dist/IDE-beta-collaboration-server-linux.zip dist/IDE-beta-collaboration-server-mint.zip
       - name: Check Windows project and Visualization workflow
         if: runner.os == 'Windows'
         run: npm run check:ui
@@ -98,6 +99,7 @@ jobs:
             source/dist/IDE-beta-linux-amd64.deb
             source/dist/IDE-beta-linux-x86_64.rpm
             source/dist/IDE-beta-collaboration-server-mint.zip
+            source/dist/IDE-beta-collaboration-server-linux.zip
           if-no-files-found: error
       - name: Upload check diagnostics
         if: failure()
@@ -132,6 +134,8 @@ jobs:
           path: packages
       - name: Check installation, application menu, startup and removal
         run: docker run --rm --shm-size=256m -v "$PWD/packages:/packages:ro" -v "$PWD/source/scripts:/checks:ro" "${{ matrix.image }}" bash /checks/check-linux-package.sh "${{ matrix.kind }}"
+      - name: Check server dependency installation for this distribution
+        run: docker run --rm -v "$PWD/source/hosting/linux:/setup:ro" -v "$PWD/source/scripts:/checks:ro" "${{ matrix.image }}" bash /checks/check-hosting-dependencies.sh
 
   publish:
     name: Publish both platforms
@@ -153,12 +157,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x86_64.AppImage IDE-beta-linux-x64.tar.gz IDE-beta-linux-amd64.deb IDE-beta-linux-x86_64.rpm IDE-beta-collaboration-server-mint.zip; do
+          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x86_64.AppImage IDE-beta-linux-x64.tar.gz IDE-beta-linux-amd64.deb IDE-beta-linux-x86_64.rpm IDE-beta-collaboration-server-linux.zip IDE-beta-collaboration-server-mint.zip; do
             test -s "release/$file"
           done
           cp downloads/latest/IDE-beta-README.txt release/IDE-beta-README.txt
           VERSION=$(node -p "require('./source/package.json').version")
-          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nUbuntu/Debian x86-64: IDE-beta-linux-amd64.deb.\nFedora x86-64: IDE-beta-linux-x86_64.rpm.\nPortable Linux x86-64: IDE-beta-linux-x86_64.AppImage or IDE-beta-linux-x64.tar.gz.\nLinux Mint collaboration server setup: IDE-beta-collaboration-server-mint.zip.\nLive code sessions require a running server; the Mint bundle includes setup instructions.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main. DEB/RPM installation, startup and removal are checked on Ubuntu 24.04, Debian 13 and Fedora 45.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
+          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nUbuntu/Debian x86-64: IDE-beta-linux-amd64.deb.\nFedora x86-64: IDE-beta-linux-x86_64.rpm.\nPortable Linux x86-64: IDE-beta-linux-x86_64.AppImage or IDE-beta-linux-x64.tar.gz.\nLinux collaboration server setup (Ubuntu, Debian, Fedora and Mint): IDE-beta-collaboration-server-linux.zip.\nThe Mint-named ZIP is a compatibility alias of the same package.\nNo public online collaboration server is operated by this project. The default setup is your own local-network server.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main. DEB/RPM installation, startup and removal are checked on Ubuntu 24.04, Debian 13 and Fedora 45.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
           if gh api "repos/$GH_REPO/git/refs/tags/latest" >/dev/null 2>&1; then
             gh api --method PATCH "repos/$GH_REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true >/dev/null
           else

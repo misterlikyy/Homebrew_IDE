@@ -2,7 +2,11 @@ IDE-beta — Windows and Linux
 
 Extract the ZIP and run IDE-beta.exe.
 
-Live collaboration: use Share project to create a private code session or join with an IDE1 invitation. A running collaboration server is required. The separate IDE-beta-collaboration-server-mint.zip contains the Linux Mint server setup: extract it on Mint and run bash setup-mint.sh. Choose local-network mode or internet HTTPS with your domain. Internet mode also needs DNS and router setup.
+Public server status: there is no public online collaboration server operated by this project. Collaboration uses your own local or self-hosted server.
+
+Live collaboration: use Share project to create a private code session or join with an IDE1 invitation. The IDE-beta-collaboration-server-linux.zip setup supports Ubuntu, Debian, Fedora and Linux Mint. Extract it and run bash setup-server.sh. Option 1 (the default) is for PCs on the same local network and does not configure internet access. Optional internet mode needs your own domain, DNS and router setup. The original Mint ZIP and setup-mint.sh remain compatibility shortcuts.
+
+To check your server, open a terminal in its extracted folder and run bash status-server.sh. Keep using the same folder and .env when updating so Docker retains your existing shared projects.
 
 The owner can issue editor/viewer invitations, replace guest invitations, and end a session. Keep the owner recovery code private. Codes are not saved in .ideproj files. Edits merge, participants and cursors are shown, and an open app reconnects after temporary disconnection. Local drafts can be recovered from Share project. This first version shares code/files; layouts, visualization, serial data and Arduino controls stay local.
 

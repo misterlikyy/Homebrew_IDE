@@ -92,7 +92,9 @@ Use **Share project** in the top bar to create a private session or join with an
 
 The owner gets separate editor, viewer, and private owner-recovery codes, and can replace guest invitations or end the session. Code is saved on the collaboration server; each person keeps their own open tabs, layout, visualization, and Arduino controls. The first version shares **code and files**, not circuit diagrams or serial data. It does not let another user upload to your board or send it commands.
 
-**A running server is required.** Download the [Linux Mint server setup ZIP](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-collaboration-server-mint.zip), extract it on your Mint PC, and run `bash setup-mint.sh`. See the [Mint hosting guide](source/hosting/mint/README.md) for local-network mode, internet HTTPS, storage, and updates. Preparing the app does not automatically deploy this server on another PC.
+**Public server status: there is currently no public online collaboration server operated by this project.** Collaboration uses your own server. The default setup, option **1**, is for PCs on the same local network; it does not configure internet access.
+
+Download the [Linux server setup ZIP](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-collaboration-server-linux.zip), extract it on **Ubuntu, Debian, Fedora or Linux Mint**, and run `bash setup-server.sh`. See the [Linux hosting guide](source/hosting/linux/README.md) for setup, status checks, firewall instructions and optional internet hosting. The old Mint ZIP link and `setup-mint.sh` remain compatibility shortcuts.
 
 Invitations grant access to anyone who has them. Credentials stay in app memory and are not included in `.ideproj` files; keep your owner recovery code if you want to reopen the same session later. Local drafts are backed up before joining, and **Open recovered local draft** can restore a draft after leaving. Project limits are 100 files, 256 KB per file, 1 MB of current text, and 12 connected participants. Server storage is readable by its administrator; transport uses HTTPS for public servers.
 
@@ -126,14 +128,15 @@ All six download formats are published together after these checks pass:
 | Check | Environment |
 | --- | --- |
 | Firmware tests, collaboration server tests, and project / Visualization / live-session UI checks | Windows and Linux |
-| Mint server container build, storage and WebSocket login | Linux |
+| Server container build, storage and WebSocket login | Linux |
+| Server dependency installation and Compose configuration | Ubuntu 24.04, Debian 13 and Fedora 45; Mint detection is tested separately |
 | Packaged app startup | Windows, Linux AppImage, and Linux archive |
 | DEB installation, menu entry, launch, and removal | Ubuntu 24.04 and Debian 13 |
 | RPM installation, menu entry, launch, and removal | Fedora 45 |
 
 Linux builds run on Ubuntu 22.04; distribution installation checks run in CI containers. Other distribution versions and physical Arduino USB operations are outside those checks.
 
-The Mint server ZIP is published alongside the desktop downloads. Download links stay the same across releases. This workflow publishes new builds; it does not automatically install updates on your computer or server.
+The Linux server ZIP is published alongside the desktop downloads. Download links stay the same across releases. This workflow publishes new builds; it does not automatically install updates on your computer or start a public server.
 
 ## Repository layout
 
