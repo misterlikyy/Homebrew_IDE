@@ -8,6 +8,11 @@ case "$kind" in
     apt-get update -qq
     apt-get install -y /packages/IDE-beta-linux-amd64.deb xvfb desktop-file-utils
     test "$(dpkg-query -W -f='${Architecture}' ide-beta)" = amd64
+    # The OSS compatibility shim also provides libasound2, but cannot run Electron.
+    if dpkg-query -W -f='${Status}' liboss4-salsa-asound2 2>/dev/null | grep -q 'install ok installed'; then
+      echo 'An incompatible ALSA compatibility shim was installed.' >&2
+      exit 1
+    fi
     ;;
   rpm)
     dnf install -y /packages/IDE-beta-linux-x86_64.rpm xorg-x11-server-Xvfb desktop-file-utils shadow-utils util-linux

@@ -43,10 +43,11 @@
     },
     "deb": {
       "artifactName": "IDE-beta-linux-amd64.deb",
-      "depends": ["libgtk-3-0 | libgtk-3-0t64", "libnss3", "libasound2 | libasound2t64", "libgbm1", "libxss1", "libxtst6", "libx11-xcb1", "libdrm2", "libxkbcommon0", "libatk-bridge2.0-0 | libatk-bridge2.0-0t64", "libcups2 | libcups2t64", "libatspi2.0-0 | libatspi2.0-0t64", "xdg-utils", "ca-certificates"]
+      "depends": ["libgtk-3-0t64 | libgtk-3-0", "libnss3", "libasound2t64 | libasound2 (>= 1.0.16)", "libgbm1", "libxss1", "libxtst6", "libx11-xcb1", "libdrm2", "libxkbcommon0", "libatk-bridge2.0-0t64 | libatk-bridge2.0-0", "libcups2t64 | libcups2", "libatspi2.0-0t64 | libatspi2.0-0", "xdg-utils", "ca-certificates"]
     },
     "rpm": {
       "artifactName": "IDE-beta-linux-x86_64.rpm",
+      "afterRemove": "scripts/linux-after-remove.sh",
       "depends": ["gtk3", "nss", "alsa-lib", "mesa-libgbm", "libXScrnSaver", "libXtst", "libdrm", "libxkbcommon", "cups-libs", "at-spi2-atk", "libX11", "libxcb", "libXcomposite", "libXdamage", "libXfixes", "libXrandr", "xdg-utils", "ca-certificates"]
     }
   },
