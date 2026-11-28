@@ -51,6 +51,7 @@ async function saveProjectToDisk(saveAs) {
 }
 
 function replaceWorkspace(value, projectPath) {
+  if (window.ideCollaboration?.active) throw new Error('Leave the shared session before opening a different project.');
   if (!value || !Array.isArray(value.files) || !value.files.length) throw new Error('The project has no sketch files.');
   const files = value.files.map(file => ({ name: file.name, text: file.text }));
   const names = files.map(file => file.name);

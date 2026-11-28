@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { readCommand, validateHex } = require('./firmware.cjs');
+const { serverUrl } = require('./collaboration/url.cjs');
+const { validateProject: validateSharedProject } = require('./collaboration/model.cjs');
 // Keep existing projects, settings, and downloaded upload tools across the rename.
 const startupCheck = process.argv.includes('--smoke-test');
 app.setPath('userData', startupCheck ? fs.mkdtempSync(path.join(os.tmpdir(), 'ide-startup-')) : path.join(app.getPath('appData'), 'ide-alpha'));
@@ -130,7 +132,7 @@ function uploadHint(out) {
 }
 
 /* ---------- interface updates: a newer index.html can be installed without rebuilding the exe ---------- */
-const API_LEVEL = 2;
+const API_LEVEL = 3;
 const uiDir = () => path.join(app.getPath('userData'), 'ui');
 function meta(file, name) {
   try { const t = fs.readFileSync(file, 'utf8').slice(0, 4000), x = t.match(new RegExp('<meta name="' + name + '" content="(\\d+)"')); return x ? +x[1] : 0; } catch { return 0; }
@@ -181,7 +183,7 @@ function createWindow(o) {
   const loaded = win.loadFile(uiFile(), { query });
   if (startupCheck) {
     const timeout = setTimeout(() => { console.error('Startup check timed out'); app.exit(1); }, 30000);
-    loaded.then(() => win.webContents.executeJavaScript("Boolean(window.uno && navigator.serial && typeof openWorkspaceSetup === 'function' && document.querySelector('#workspaceDialog').open)"))
+    loaded.then(() => win.webContents.executeJavaScript("Boolean(window.uno && window.IDECollab && window.ideCollaboration && navigator.serial && typeof openWorkspaceSetup === 'function' && document.querySelector('#workspaceDialog').open)"))
       .then(ok => {
         clearTimeout(timeout);
         console.log(JSON.stringify({ startup: !!ok, platform: process.platform, version: app.getVersion() }));
@@ -299,6 +301,23 @@ ipcMain.handle('cli:compile', async (e, files, fqbn) => {
   } finally {
     fs.rmSync(path.dirname(dir), { recursive: true, force: true });
   }
+});
+
+ipcMain.handle('collab:create', async (event, address, project, key) => {
+  try {
+    validateSharedProject(project);
+    const body = { name: project.name, files: project.files.map(file => ({ name: file.name, text: file.text })) };
+    const response = await net.fetch(serverUrl(address) + '/api/rooms', {
+      method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json', ...(key ? { Authorization: 'Bearer ' + String(key).slice(0, 256) } : {}) },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(20000)
+    });
+    const text = await response.text();
+    if (text.length > 20000) throw Error('The server returned an invalid response.');
+    const result = JSON.parse(text);
+    if (!response.ok) throw Error(result.error || 'Could not create the shared session.');
+    if (result.protocol !== 1 || !/^[a-f0-9-]{36}$/.test(result.room) || !['owner', 'editor', 'viewer'].every(role => /^[A-Za-z0-9_-]{43}$/.test(result.keys?.[role]))) throw Error('This address is not a compatible collaboration server.');
+    return { ok: true, ...result };
+  } catch (error) { return { ok: false, error: 'Could not create session: ' + error.message }; }
 });
 
 let boardOperation = false;

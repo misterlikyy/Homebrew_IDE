@@ -14,6 +14,7 @@ dialog.showSaveDialog = async () => ({ canceled: false, filePath: bundle });
 dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [bundle] });
 const errors = [];
 app.on('web-contents-created', (event, contents) => {
+  contents.setBackgroundThrottling(false);
   contents.on('console-message', (event, level, message) => { if (level === 3) errors.push(message); });
 });
 const main = new Module(path.join(root, 'main.js'), module);
@@ -28,7 +29,7 @@ async function until(win, expression) {
   }
   throw new Error('Timed out waiting for ' + expression);
 }
-const timeout = setTimeout(() => { console.error('UI check timed out'); app.exit(1); }, 60000);
+const timeout = setTimeout(() => { console.error('UI check timed out'); app.exit(1); }, 120000);
 app.whenReady().then(async () => {
   let editor;
   try {
@@ -92,8 +93,69 @@ app.whenReady().then(async () => {
         } finally { askConfirm = confirm; }
       })()
     `);
+    const service = require('../collaboration/server.cjs').createServer({ directory: path.join(profile, 'server'), createKey: 'ui-test-key' });
+    await new Promise(resolve => service.server.listen(0, '127.0.0.1', resolve));
+    const address = 'http://127.0.0.1:' + service.server.address().port;
+    await editor.webContents.executeJavaScript(`
+      $('#collabName').value = 'Owner'; $('#collabServer').value = ${JSON.stringify(address)};
+      $('#collabKey').value = 'ui-test-key'; $('#collabCreate').click();
+    `);
+    await until(editor, 'ideCollaboration.session?.status === "connected"');
+    const editorCode = await editor.webContents.executeJavaScript("$('#collabEditorCode').value");
+    const viewerCode = await editor.webContents.executeJavaScript("$('#collabViewerCode').value");
+    async function joinWindow(code, name) {
+      const before = new Set(BrowserWindow.getAllWindows());
+      await editor.webContents.executeJavaScript('window.uno.newWindow()');
+      const win = BrowserWindow.getAllWindows().find(win => !before.has(win));
+      if (win.webContents.isLoading()) await new Promise(resolve => win.webContents.once('did-finish-load', resolve));
+      await until(win, 'typeof ideCollaboration !== "undefined"');
+      await win.webContents.executeJavaScript(`
+        $('#workspaceDialog').close(); workspaceStarted = true; askConfirm = async () => true;
+        $('#collabName').value = ${JSON.stringify(name)}; $('#collabInvite').value = ${JSON.stringify(code)};
+        $('#collabJoin').click();
+      `);
+      await until(win, 'ideCollaboration.session?.status === "connected"');
+      return win;
+    }
+    const guest = await joinWindow(editorCode, 'Editor');
+    await Promise.all([editor.webContents.executeJavaScript("openFile('main.ino'); $('#code').value += '\\n// from owner'; onEdit(); onCaret();"),
+      guest.webContents.executeJavaScript("openFile('main.ino'); $('#code').value += '\\n// from editor'; onEdit(); onCaret();")]);
+    for (const win of [editor, guest]) await until(win, "fileOf('main.ino').text.includes('from owner') && fileOf('main.ino').text.includes('from editor')");
+    await editor.webContents.executeJavaScript("createFile('online.h', '// shared helper');");
+    await until(guest, "!!fileOf('online.h')");
+    await editor.webContents.executeJavaScript("renameFile('online.h'); const inp = $('#files input'); inp.value = 'shared.h'; inp.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter'}));");
+    await until(guest, "!!fileOf('shared.h') && !fileOf('online.h')");
+    await editor.webContents.executeJavaScript("askConfirm = async () => true; deleteFile('shared.h');");
+    await until(guest, "!fileOf('shared.h')");
+    const viewer = await joinWindow(viewerCode, 'Viewer');
+    await viewer.webContents.executeJavaScript(`
+      const before = JSON.stringify(project.files);
+      if (!$('#code').readOnly || !$('#newFileBtn').disabled) throw new Error('Viewer controls are editable');
+      if (createFile('forbidden.h', '// no')) throw new Error('Viewer created a file');
+      $('#code').value += 'forbidden edit'; onEdit();
+      if (JSON.stringify(project.files) !== before) throw new Error('Viewer changed shared code');
+    `);
+    await editor.webContents.executeJavaScript('ideCollaboration.session.delay = 1000; ideCollaboration.session.socket.close();');
+    await until(editor, '!ideCollaboration.session.ready');
+    await editor.webContents.executeJavaScript("openFile('main.ino'); $('#code').value += '\\n// offline owner'; onEdit();");
+    await guest.webContents.executeJavaScript("$('#code').value += '\\n// while owner offline'; onEdit();");
+    await until(editor, 'ideCollaboration.session.status === "connected"');
+    for (const win of [editor, guest, viewer]) await until(win, "fileOf('main.ino').text.includes('offline owner') && fileOf('main.ino').text.includes('while owner offline')");
+    await guest.webContents.executeJavaScript('saveProjectToDisk(false)');
+    await wait(200);
+    const saved = fs.readFileSync(bundle, 'utf8');
+    if (saved.includes('IDE1.') || saved.includes('ui-test-key')) throw new Error('Session credentials leaked into the project file');
+    await editor.webContents.executeJavaScript("$('#shareProject').click()");
+    await until(editor, "$('#collabDialog').open");
+    await wait(250);
+    if (process.env.IDE_CAPTURE_COLLAB) fs.writeFileSync(path.join(root, 'dist', 'collaboration-preview.png'), (await editor.webContents.capturePage()).toPNG());
+    await editor.webContents.executeJavaScript("$('#collabEnd').click()");
+    await until(guest, '!ideCollaboration.active');
+    await until(viewer, '!ideCollaboration.active');
+    await service.close();
+    if (errors.length) throw new Error(errors.join('\n'));
     clearTimeout(timeout);
-    console.log(JSON.stringify({ ok: true, platform: process.platform, projectSaveOpen: true, visualization: true, firmwareViewer: true, bundledFont: true }));
+    console.log(JSON.stringify({ ok: true, platform: process.platform, projectSaveOpen: true, visualization: true, firmwareViewer: true, collaboration: true, bundledFont: true }));
     app.exit(0);
   } catch (error) {
     clearTimeout(timeout);

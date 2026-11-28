@@ -12,13 +12,9 @@ if errorlevel 1 (
 
 echo Close IDE-beta.exe if it is open before replacing the Desktop copy.
 
-if not exist "node_modules\electron-builder" (
-  echo Installing the build tools. This only happens the first time.
-  call npm install --no-audit --no-fund
-  if errorlevel 1 ( echo The install failed. Check your internet connection. & pause & exit /b 1 )
-) else (
-  echo Build tools are already installed, skipping.
-)
+echo Installing the dependencies for this app version...
+call npm ci --no-audit --no-fund
+if errorlevel 1 ( echo The install failed. Check your internet connection. & pause & exit /b 1 )
 
 echo Building the app. This takes a minute or two...
 call npm run dist

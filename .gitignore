@@ -4,3 +4,6 @@ dist/
 .DS_Store
 Thumbs.db
 Desktop.ini
+source/collaboration.bundle.js
+collaboration-data/
+.env

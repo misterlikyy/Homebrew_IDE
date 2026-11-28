@@ -86,6 +86,16 @@ Open **Visualization** from the top bar for a separate circuit window. Use **Bui
 - **View → Choose Workspace Tabs** changes which views appear.
 - **Tools → Boards Manager / Library Manager** manages board packages and libraries.
 
+### Live collaboration
+
+Use **Share project** in the top bar to create a private session or join with an invitation code. Editors can work on code and files together, with coloured cursors and participant names. Viewers can read the project. Concurrent edits merge, and an open app reconnects after a temporary connection loss.
+
+The owner gets separate editor, viewer, and private owner-recovery codes, and can replace guest invitations or end the session. Code is saved on the collaboration server; each person keeps their own open tabs, layout, visualization, and Arduino controls. The first version shares **code and files**, not circuit diagrams or serial data. It does not let another user upload to your board or send it commands.
+
+**A running server is required.** Download the [Linux Mint server setup ZIP](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-collaboration-server-mint.zip), extract it on your Mint PC, and run `bash setup-mint.sh`. See the [Mint hosting guide](source/hosting/mint/README.md) for local-network mode, internet HTTPS, storage, and updates. Preparing the app does not automatically deploy this server on another PC.
+
+Invitations grant access to anyone who has them. Credentials stay in app memory and are not included in `.ideproj` files; keep your owner recovery code if you want to reopen the same session later. Local drafts are backed up before joining, and **Open recovered local draft** can restore a draft after leaving. Project limits are 100 files, 256 KB per file, 1 MB of current text, and 12 connected participants. Server storage is readable by its administrator; transport uses HTTPS for public servers.
+
 ### Firmware backups
 
 Select **Arduino Uno**, then choose **Run → Download Firmware from Board** to save a `.hex` flash backup and open it in a read-only viewer. The IDE validates the HEX checksums and keeps your editor files unchanged.
@@ -115,14 +125,15 @@ All six download formats are published together after these checks pass:
 
 | Check | Environment |
 | --- | --- |
-| Firmware tests and project / Visualization UI checks | Windows and Linux |
+| Firmware tests, collaboration server tests, and project / Visualization / live-session UI checks | Windows and Linux |
+| Mint server container build, storage and WebSocket login | Linux |
 | Packaged app startup | Windows, Linux AppImage, and Linux archive |
 | DEB installation, menu entry, launch, and removal | Ubuntu 24.04 and Debian 13 |
 | RPM installation, menu entry, launch, and removal | Fedora 45 |
 
 Linux builds run on Ubuntu 22.04; distribution installation checks run in CI containers. Other distribution versions and physical Arduino USB operations are outside those checks.
 
-Download links stay the same across releases. This workflow publishes new builds; it does not automatically install updates on your computer.
+The Mint server ZIP is published alongside the desktop downloads. Download links stay the same across releases. This workflow publishes new builds; it does not automatically install updates on your computer or server.
 
 ## Repository layout
 

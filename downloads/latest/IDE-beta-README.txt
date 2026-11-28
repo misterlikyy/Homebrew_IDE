@@ -2,6 +2,10 @@ IDE-beta — Windows and Linux
 
 Extract the ZIP and run IDE-beta.exe.
 
+Live collaboration: use Share project to create a private code session or join with an IDE1 invitation. A running collaboration server is required. The separate IDE-beta-collaboration-server-mint.zip contains the Linux Mint server setup: extract it on Mint and run bash setup-mint.sh. Choose local-network mode or internet HTTPS with your domain. Internet mode also needs DNS and router setup.
+
+The owner can issue editor/viewer invitations, replace guest invitations, and end a session. Keep the owner recovery code private. Codes are not saved in .ideproj files. Edits merge, participants and cursors are shown, and an open app reconnects after temporary disconnection. Local drafts can be recovered from Share project. This first version shares code/files; layouts, visualization, serial data and Arduino controls stay local.
+
 Run > Download Firmware from Board saves the connected classic Uno's compiled flash as a .hex backup and opens a read-only viewer. This cannot recover the original .ino source, comments, or variable names. EEPROM is not included. Reading resets the board briefly but does not erase or write flash. The open editor files stay unchanged.
 
 Ubuntu/Debian x86-64: sudo apt install ./IDE-beta-linux-amd64.deb

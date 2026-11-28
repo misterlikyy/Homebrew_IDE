@@ -1,0 +1,3 @@
+{$COLLAB_DOMAIN} {
+    reverse_proxy collaboration:1234
+}

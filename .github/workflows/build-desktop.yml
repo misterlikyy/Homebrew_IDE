@@ -48,8 +48,17 @@ jobs:
           sudo apt-get install -y libgtk-3-0 libnss3 libasound2 libgbm1 libfuse2 xvfb rpm
       - name: Install app dependencies
         run: npm ci --no-audit --no-fund
-      - name: Check firmware readback safety and errors
+      - name: Check firmware and collaboration behavior
         run: npm test
+      - name: Prepare and check the Linux Mint collaboration server
+        if: runner.os == 'Linux'
+        run: |
+          node scripts/package-mint.cjs
+          COLLAB_CREATE_KEY=ci-configuration-validation-only docker compose -f dist/server-mint/compose.yaml config --quiet
+          bash -n dist/server-mint/setup-mint.sh dist/server-mint/stop-server.sh
+          docker build -t ide-beta-collaboration-check dist/server-mint
+          node scripts/check-server-container.cjs
+          (cd dist/server-mint && zip -qr ../IDE-beta-collaboration-server-mint.zip .)
       - name: Check Windows project and Visualization workflow
         if: runner.os == 'Windows'
         run: npm run check:ui
@@ -88,6 +97,7 @@ jobs:
             source/dist/IDE-beta-linux-x64.tar.gz
             source/dist/IDE-beta-linux-amd64.deb
             source/dist/IDE-beta-linux-x86_64.rpm
+            source/dist/IDE-beta-collaboration-server-mint.zip
           if-no-files-found: error
       - name: Upload check diagnostics
         if: failure()
@@ -143,12 +153,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x86_64.AppImage IDE-beta-linux-x64.tar.gz IDE-beta-linux-amd64.deb IDE-beta-linux-x86_64.rpm; do
+          for file in IDE-beta.exe IDE-beta.zip IDE-beta-linux-x86_64.AppImage IDE-beta-linux-x64.tar.gz IDE-beta-linux-amd64.deb IDE-beta-linux-x86_64.rpm IDE-beta-collaboration-server-mint.zip; do
             test -s "release/$file"
           done
           cp downloads/latest/IDE-beta-README.txt release/IDE-beta-README.txt
           VERSION=$(node -p "require('./source/package.json').version")
-          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nUbuntu/Debian x86-64: IDE-beta-linux-amd64.deb.\nFedora x86-64: IDE-beta-linux-x86_64.rpm.\nPortable Linux x86-64: IDE-beta-linux-x86_64.AppImage or IDE-beta-linux-x64.tar.gz.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main. DEB/RPM installation, startup and removal are checked on Ubuntu 24.04, Debian 13 and Fedora 45.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
+          printf 'IDE-beta %s\n\nBuilt from commit %s.\n\nWindows: IDE-beta.exe or IDE-beta.zip.\nUbuntu/Debian x86-64: IDE-beta-linux-amd64.deb.\nFedora x86-64: IDE-beta-linux-x86_64.rpm.\nPortable Linux x86-64: IDE-beta-linux-x86_64.AppImage or IDE-beta-linux-x64.tar.gz.\nLinux Mint collaboration server setup: IDE-beta-collaboration-server-mint.zip.\nLive code sessions require a running server; the Mint bundle includes setup instructions.\n\nBoth platforms are rebuilt and checked automatically when source changes reach main. DEB/RPM installation, startup and removal are checked on Ubuntu 24.04, Debian 13 and Fedora 45.\n\nLinux setup instructions are in the repository README.\n' "$VERSION" "$GITHUB_SHA" > release-notes.md
           if gh api "repos/$GH_REPO/git/refs/tags/latest" >/dev/null 2>&1; then
             gh api --method PATCH "repos/$GH_REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true >/dev/null
           else
