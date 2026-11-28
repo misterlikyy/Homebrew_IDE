@@ -8,10 +8,10 @@ const root = path.resolve(__dirname, '..');
 const bash = process.platform === 'win32' ? 'C:/Program Files/Git/bin/bash.exe' : '/bin/bash';
 const script = path.join(root, 'hosting/linux/setup-server.sh').replace(/\\/g, '/');
 for (const [id, family, packages] of [
-  ['ubuntu', 'ubuntu', 'docker.io docker-compose-v2 openssl'],
-  ['linuxmint', 'ubuntu', 'docker.io docker-compose-v2 openssl'],
-  ['debian', 'debian', 'docker.io docker-compose openssl'],
-  ['fedora', 'fedora', 'moby-engine docker-compose openssl']
+  ['ubuntu', 'ubuntu', 'docker.io docker-compose-v2 docker-buildx openssl'],
+  ['linuxmint', 'ubuntu', 'docker.io docker-compose-v2 docker-buildx openssl'],
+  ['debian', 'debian', 'docker.io docker-compose docker-buildx openssl'],
+  ['fedora', 'fedora', 'moby-engine docker-compose docker-buildx openssl']
 ]) test('Server setup detects ' + id + ' without installing packages or writing credentials', t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ide-hosting-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));

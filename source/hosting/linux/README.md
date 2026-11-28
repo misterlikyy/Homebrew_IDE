@@ -22,7 +22,7 @@ This setup supports **Ubuntu, Debian, Fedora and Linux Mint**. Windows and Linux
 | Debian 13+ | `docker.io` | `docker-compose` (v2+) |
 | Fedora | `moby-engine` | `docker-compose` |
 
-The script detects `/etc/os-release`, reuses a working Docker/Compose installation, and installs OpenSSL if missing. Existing Docker CE installations on Debian/Ubuntu can use their configured `docker-compose-plugin` package. On older Debian releases whose repositories only provide Compose v1, install Docker Engine and its Compose plugin using [Docker's Debian instructions](https://docs.docker.com/engine/install/debian/) first, then rerun setup. Podman's Docker-command wrapper is not used as a replacement for Docker Engine.
+The script detects `/etc/os-release`, reuses a working Docker/Compose installation, and installs Buildx and OpenSSL if missing. It also checks that the Buildx version is compatible with Compose. Existing Docker CE installations on Debian/Ubuntu can use their configured `docker-compose-plugin` package. On older Debian releases whose repositories only provide Compose v1, install Docker Engine and its Compose plugin using [Docker's Debian instructions](https://docs.docker.com/engine/install/debian/) first, then rerun setup. Podman's Docker-command wrapper is not used as a replacement for Docker Engine.
 
 Package sources: [Ubuntu Compose v2](https://packages.ubuntu.com/search?keywords=docker-compose-v2), [Debian Compose](https://packages.debian.org/stable/docker-compose), [Fedora Docker Compose](https://developer.fedoraproject.org/tools/docker/compose.html).
 
