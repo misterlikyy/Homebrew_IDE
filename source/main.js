@@ -210,7 +210,8 @@ function createWindow(o) {
   if (startupCheck) {
     const timeout = setTimeout(() => { console.error('Startup check timed out'); app.exit(1); }, 30000);
     loaded.then(() => {
-      if (process.platform === 'linux') require('serialport').SerialPort;
+      // bindings-cpp ships Node-API binaries; verify the packaged driver on both platforms.
+      require('serialport').SerialPort;
       return win.webContents.executeJavaScript("Boolean(window.uno && window.IDESerial && window.IDECollab && window.ideCollaboration && navigator.serial && typeof openWorkspaceSetup === 'function' && document.querySelector('#workspaceDialog').open)");
     })
       .then(ok => {

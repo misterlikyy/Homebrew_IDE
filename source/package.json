@@ -27,6 +27,7 @@
   "build": {
     "appId": "com.unobench.app",
     "productName": "IDE-beta",
+    "npmRebuild": false,
     "files": [
       "main.js",
       "preload.js",
