@@ -4,7 +4,11 @@ Extract the ZIP and run IDE-beta.exe.
 
 Run > Download Firmware from Board saves the connected classic Uno's compiled flash as a .hex backup and opens a read-only viewer. This cannot recover the original .ino source, comments, or variable names. EEPROM is not included. Reading resets the board briefly but does not erase or write flash. The open editor files stay unchanged.
 
-Linux x86-64: make IDE-beta-linux-x86_64.AppImage executable and run it. If FUSE 2 is unavailable, use --appimage-extract-and-run or the portable tar.gz archive. After extracting the archive, run ide-beta from the extracted folder.
+Ubuntu/Debian x86-64: sudo apt install ./IDE-beta-linux-amd64.deb
+Fedora x86-64: sudo dnf install ./IDE-beta-linux-x86_64.rpm
+After installation, open IDE-beta from the application menu or run ide-beta. Remove with sudo apt remove ide-beta or sudo dnf remove ide-beta.
+
+Portable Linux x86-64: make IDE-beta-linux-x86_64.AppImage executable and run it. If FUSE 2 is unavailable, use --appimage-extract-and-run or the portable tar.gz archive. After extracting the archive, run ide-beta from the extracted folder.
 
 Linux serial-port permission setup: https://support.arduino.cc/hc/en-us/articles/360016495679-Fix-port-access-on-Linux
 

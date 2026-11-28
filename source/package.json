@@ -1,13 +1,13 @@
 {
   "name": "ide-beta",
-  "version": "1.0.0-beta.8",
+  "version": "1.0.0-beta.9",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win portable",
     "dist:win": "electron-builder --win portable --x64",
-    "dist:linux": "electron-builder --linux AppImage tar.gz --x64",
+    "dist:linux": "electron-builder --linux AppImage tar.gz deb rpm --x64",
     "check:ui": "electron scripts/smoke.cjs",
     "test": "node --test scripts/firmware.test.cjs"
   },
@@ -35,14 +35,24 @@
       "artifactName": "IDE-beta.exe"
     },
     "linux": {
-      "target": ["AppImage", "tar.gz"],
+      "target": ["AppImage", "tar.gz", "deb", "rpm"],
       "category": "Development",
       "icon": "icon.png",
       "executableName": "ide-beta",
       "artifactName": "IDE-beta-linux-${arch}.${ext}"
+    },
+    "deb": {
+      "artifactName": "IDE-beta-linux-amd64.deb",
+      "depends": ["libgtk-3-0 | libgtk-3-0t64", "libnss3", "libasound2 | libasound2t64", "libgbm1", "libxss1", "libxtst6", "libx11-xcb1", "libdrm2", "libxkbcommon0", "libatk-bridge2.0-0 | libatk-bridge2.0-0t64", "libcups2 | libcups2t64", "libatspi2.0-0 | libatspi2.0-0t64", "xdg-utils", "ca-certificates"]
+    },
+    "rpm": {
+      "artifactName": "IDE-beta-linux-x86_64.rpm",
+      "depends": ["gtk3", "nss", "alsa-lib", "mesa-libgbm", "libXScrnSaver", "libXtst", "libdrm", "libxkbcommon", "cups-libs", "at-spi2-atk", "libX11", "libxcb", "libXcomposite", "libXdamage", "libXfixes", "libXrandr", "xdg-utils", "ca-certificates"]
     }
   },
-  "author": "IDE-beta",
+  "author": { "name": "misterlikyy", "email": "misterlikyy@users.noreply.github.com" },
+  "homepage": "https://github.com/misterlikyy/Homebrew_IDE",
+  "license": "MIT",
   "allowScripts": {
     "electron@33.4.11": true
   }

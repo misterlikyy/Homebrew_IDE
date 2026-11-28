@@ -6,12 +6,28 @@ A Windows and Linux desktop editor and dashboard for Arduino Uno projects.
 
 - [Windows portable EXE](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.exe)
 - [Windows ZIP](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta.zip)
+- [Ubuntu / Debian DEB (amd64)](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-amd64.deb)
+- [Fedora RPM (x86_64)](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.rpm)
 - [Linux x86-64 AppImage](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x86_64.AppImage)
 - [Linux x86-64 portable archive](https://github.com/misterlikyy/Homebrew_IDE/releases/download/latest/IDE-beta-linux-x64.tar.gz)
 
 On Windows, extract the ZIP and run `IDE-beta.exe`.
 
-On Linux, make the AppImage executable and open it.
+For Ubuntu/Debian, download the DEB and install it with:
+
+```sh
+sudo apt install ./IDE-beta-linux-amd64.deb
+```
+
+For Fedora, download the RPM and install it with:
+
+```sh
+sudo dnf install ./IDE-beta-linux-x86_64.rpm
+```
+
+Then open **IDE-beta** from your application menu, or run `ide-beta`. These packages install dependencies through your distribution's package manager. Remove the app with `sudo apt remove ide-beta` or `sudo dnf remove ide-beta`. Installation, menu entry, startup and removal are checked on Ubuntu 24.04, Debian 13 and Fedora 45 in CI containers; other distribution versions are not covered by those checks.
+
+For a portable Linux version, make the AppImage executable and open it.
 
 ```sh
 chmod +x IDE-beta-linux-x86_64.AppImage
@@ -50,10 +66,10 @@ The board stores compiled machine code, **not the original `.ino` sketch**: sour
 
 Install Node.js 22 or newer. On Windows, open [source/](source/) and double-click `build.bat`. On Linux, run `sh source/build.sh`.
 
-Inside `source/`, run `npm ci`, then `npm run dist:win` on Windows or `npm run dist:linux` on Linux.
+Inside `source/`, run `npm ci`, then `npm run dist:win` on Windows or `npm run dist:linux` on Linux. Linux builds produce AppImage, tar.gz, DEB and RPM files. To build RPM, install `rpm` on Ubuntu/Debian (`sudo apt install rpm`), or `rpm-build` on Fedora (`sudo dnf install rpm-build`).
 
 ## Automatic updates
 
-Every app or workflow change pushed to `main` starts **Actions → Build and publish Windows and Linux**. Both platforms must build and pass their UI and packaged-startup checks before the `latest` release downloads are updated. The workflow can also be started manually with **Run workflow**.
+Every app or workflow change pushed to `main` starts **Actions → Build and publish Windows and Linux**. Both platforms must build and pass their UI and packaged-startup checks, and the DEB/RPM packages must pass installation, launch and removal checks, before the `latest` release downloads are updated. All six download formats are updated together. The workflow can also be started manually with **Run workflow**.
 
 Downloads live in GitHub Releases so new builds update the same links without adding large binaries to every source commit. The release notes identify the source commit used for both platforms.
