@@ -2,6 +2,8 @@
 
 A desktop editor, dashboard, and circuit visualization workspace for Arduino Uno projects on **Windows and Linux**.
 
+> **Collaboration status:** no public online server is currently provided. Run your own server; the default setup shares with PCs on your local network.
+
 [Latest release](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest) · [Downloads](#downloads) · [Getting started](#getting-started) · [Build from source](#build-from-source)
 
 ## Downloads
