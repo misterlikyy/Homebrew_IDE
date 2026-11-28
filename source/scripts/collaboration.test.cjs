@@ -56,6 +56,18 @@ test('Relative cursors follow edits and invitations require a secure public endp
   a.destroy(); b.destroy();
 });
 
+test('Shared text edits preserve Unicode pairs, accents and line endings across synchronization', () => {
+  const values = ['', 'abc', '\n', 'café', 'e\u0301', '\ud83d\ude00', '\ud83d\ude01', '\ud800\ude00', 'a\ud83d\ude00z', 'a\ud83d\ude01z', '\ud83d\ude00\ud83d\ude01', 'line\r\nnext'];
+  for (const before of values) for (const after of values) {
+    const a = model.createDocument({ name: 'Unicode', files: [{ name: 'main.ino', text: before }] });
+    model.syncProject(a, { name: 'Unicode', files: [{ collabId: 'initial-000', name: 'main.ino', text: after }] });
+    const b = clone(a);
+    assert.equal(model.snapshot(a).files[0].text, after);
+    assert.equal(model.snapshot(b).files[0].text, after);
+    a.destroy(); b.destroy();
+  }
+});
+
 async function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ide-collab-test-')), clients = [];
   const key = 'test-create-key-only-' + 'a'.repeat(32);

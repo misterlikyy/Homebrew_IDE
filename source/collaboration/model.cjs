@@ -51,6 +51,11 @@ function replaceText(text, value) {
   let start = 0, end = 0;
   while (start < before.length && start < value.length && before[start] === value[start]) start++;
   while (end < before.length - start && end < value.length - start && before[before.length - 1 - end] === value[value.length - 1 - end]) end++;
+  // Yjs cannot splice the two UTF-16 halves of one character independently.
+  const high = code => code >= 0xd800 && code <= 0xdbff;
+  const low = code => code >= 0xdc00 && code <= 0xdfff;
+  if (start && high(before.charCodeAt(start - 1)) && low(before.charCodeAt(start))) start--;
+  if (end && low(before.charCodeAt(before.length - end)) && high(before.charCodeAt(before.length - end - 1))) end--;
   const removed = before.length - start - end;
   if (removed) text.delete(start, removed);
   const added = value.slice(start, value.length - end); if (added) text.insert(start, added);
