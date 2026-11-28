@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -76,8 +76,24 @@ app.whenReady().then(async () => {
       })()
     `);
     if (errors.length) throw new Error(errors.join('\n'));
+    ipcMain.removeHandler('cli:readFirmware');
+    ipcMain.handle('cli:readFirmware', () => ({ ok: true, bytes: 4, port: 'test port', path: 'Uno-firmware.hex', text: ':0400000001020304F2\n:00000001FF\n' }));
+    await editor.webContents.executeJavaScript(`
+      (async () => {
+        const before = JSON.stringify(project.files);
+        const confirm = askConfirm;
+        try {
+          askConfirm = async () => true;
+          await downloadFirmware();
+          const hex = document.querySelector('#infoBody textarea');
+          if (!hex || !hex.readOnly || !hex.value.includes(':04000000') || !$('#infoDlg').open) throw new Error('Firmware viewer failed');
+          if (JSON.stringify(project.files) !== before || busy) throw new Error('Firmware download changed the sketch or left controls busy');
+          $('#infoDlg').close();
+        } finally { askConfirm = confirm; }
+      })()
+    `);
     clearTimeout(timeout);
-    console.log(JSON.stringify({ ok: true, platform: process.platform, projectSaveOpen: true, visualization: true, bundledFont: true }));
+    console.log(JSON.stringify({ ok: true, platform: process.platform, projectSaveOpen: true, visualization: true, firmwareViewer: true, bundledFont: true }));
     app.exit(0);
   } catch (error) {
     clearTimeout(timeout);

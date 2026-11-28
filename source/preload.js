@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('uno', {
   installCore: () => ipcRenderer.invoke('cli:installCore'),
   compile: (files, fqbn) => ipcRenderer.invoke('cli:compile', files, fqbn),
   upload: (files, fqbn) => ipcRenderer.invoke('cli:upload', files, fqbn),
+  readFirmware: fqbn => ipcRenderer.invoke('cli:readFirmware', fqbn),
   pkgSearch: (kind, q) => ipcRenderer.invoke('pkg:search', kind, q),
   pkgInstalled: () => ipcRenderer.invoke('pkg:installed'),
   pkgInstall: (kind, key) => ipcRenderer.invoke('pkg:install', kind, key),

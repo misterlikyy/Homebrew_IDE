@@ -47,6 +47,8 @@ jobs:
           sudo apt-get install -y libgtk-3-0 libnss3 libasound2 libgbm1 libfuse2 xvfb
       - name: Install app dependencies
         run: npm ci --no-audit --no-fund
+      - name: Check firmware readback safety and errors
+        run: npm test
       - name: Check Windows project and Visualization workflow
         if: runner.os == 'Windows'
         run: npm run check:ui

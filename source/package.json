@@ -1,6 +1,6 @@
 {
   "name": "ide-beta",
-  "version": "1.0.0-beta.7",
+  "version": "1.0.0-beta.8",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "dist": "electron-builder --win portable",
     "dist:win": "electron-builder --win portable --x64",
     "dist:linux": "electron-builder --linux AppImage tar.gz --x64",
-    "check:ui": "electron scripts/smoke.cjs"
+    "check:ui": "electron scripts/smoke.cjs",
+    "test": "node --test scripts/firmware.test.cjs"
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -22,6 +23,7 @@
       "preload.js",
       "index.html",
       "workspace.js",
+      "firmware.cjs",
       "icon.png",
       "fonts/**/*"
     ],

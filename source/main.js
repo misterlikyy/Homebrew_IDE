@@ -3,6 +3,7 @@ const { spawn, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { readCommand, validateHex } = require('./firmware.cjs');
 // Keep existing projects, settings, and downloaded upload tools across the rename.
 const startupCheck = process.argv.includes('--smoke-test');
 app.setPath('userData', startupCheck ? fs.mkdtempSync(path.join(os.tmpdir(), 'ide-startup-')) : path.join(app.getPath('appData'), 'ide-alpha'));
@@ -13,10 +14,10 @@ function cliCmd() {
   const local = path.join(cliDir(), process.platform === 'win32' ? 'arduino-cli.exe' : 'arduino-cli');
   return fs.existsSync(local) ? local : 'arduino-cli';
 }
-function run(args, onLine) {
+function run(args, onLine, command = cliCmd(), options = {}) {
   return new Promise(resolve => {
     let out = '', so = '', p;
-    try { p = spawn(cliCmd(), args, { windowsHide: true }); }
+    try { p = spawn(command, args, { windowsHide: true, cwd: options.cwd }); }
     catch (e) { return resolve({ code: -1, out: '', so: '', missing: true }); }
     p.on('error', e => resolve({ code: -1, out: '', so: '', missing: e.code === 'ENOENT' }));
     const h = d => {
@@ -24,7 +25,9 @@ function run(args, onLine) {
       if (onLine) t.split(/\r?\n/).filter(Boolean).forEach(onLine);
     };
     p.stdout.on('data', d => { so += d.toString(); h(d); }); p.stderr.on('data', h);
-    p.on('close', code => resolve({ code, out, so }));
+    const timer = options.timeout ? setTimeout(() => { out += '\nBoard read timed out.'; p.kill(); }, options.timeout) : null;
+    p.on('error', () => clearTimeout(timer));
+    p.on('close', code => { clearTimeout(timer); resolve({ code, out, so }); });
   });
 }
 function parseJson(s) {
@@ -298,15 +301,18 @@ ipcMain.handle('cli:compile', async (e, files, fqbn) => {
   }
 });
 
+let boardOperation = false;
 ipcMain.handle('cli:upload', async (e, files, fqbn) => {
+  if (boardOperation) return { ok: false, error: 'Another board operation is running. Wait for it to finish.' };
   const send = l => e.sender.send('cli:output', l);
   const win = BrowserWindow.fromWebContents(e.sender);
   fqbn = fqbn || 'arduino:avr:uno';
-  const need = await needTools(fqbn); if (need) return need;
-  const dir = writeSketch(files);
-  if (!dir) return { ok: false, error: 'The project needs a .ino file.' };
-
+  boardOperation = true;
+  let dir;
   try {
+    const need = await needTools(fqbn); if (need) return need;
+    dir = writeSketch(files);
+    if (!dir) return { ok: false, error: 'The project needs a .ino file.' };
     send('Looking for the Arduino…');
     const port = await pickPort(win);
     if (!port) return { ok: false, error: NO_PORT };
@@ -320,7 +326,42 @@ ipcMain.handle('cli:upload', async (e, files, fqbn) => {
     r = await run(['upload', '-p', port, '--fqbn', fqbn, dir], send);
     return r.code === 0 ? { ok: true } : { ok: false, error: uploadHint(r.out) };
   } finally {
-    fs.rmSync(path.dirname(dir), { recursive: true, force: true });
+    boardOperation = false;
+    if (dir) fs.rmSync(path.dirname(dir), { recursive: true, force: true });
+  }
+});
+
+ipcMain.handle('cli:readFirmware', async (e, fqbn) => {
+  if (boardOperation) return { ok: false, error: 'Another board operation is running. Wait for it to finish.' };
+  if ((fqbn || 'arduino:avr:uno') !== 'arduino:avr:uno') return { ok: false, error: 'Select Arduino Uno first. Firmware download currently supports the classic Uno (ATmega328P).' };
+  boardOperation = true;
+  let directory;
+  const send = line => { if (!e.sender.isDestroyed()) e.sender.send('cli:output', line); };
+  try {
+    const need = await needTools('arduino:avr:uno'); if (need) return need;
+    const win = BrowserWindow.fromWebContents(e.sender);
+    const save = await dialog.showSaveDialog(win, { title: 'Save compiled firmware backup', defaultPath: 'Uno-firmware.hex', filters: [{ name: 'Intel HEX firmware (not Arduino source)', extensions: ['hex'] }] });
+    if (save.canceled || !save.filePath) return { ok: false, cancelled: true };
+    const port = await pickPort(win);
+    if (!port) return { ok: false, cancelled: true, error: NO_PORT };
+    send('Finding the installed Uno firmware reader…');
+    const properties = await run(['board', 'details', '--fqbn', 'arduino:avr:uno', '--show-properties=expanded']);
+    if (properties.code !== 0) return { ok: false, error: 'Could not read the Uno tool settings. Check your installed Uno board package.' };
+    const reader = readCommand(properties.so, port);
+    if (!fs.existsSync(reader.command) || !fs.existsSync(reader.config)) return { ok: false, error: 'The Uno firmware reader is missing. Reinstall Arduino AVR Boards from Tools → Boards Manager.' };
+    directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ide-firmware-'));
+    send('Reading compiled firmware from ' + port + '. The board will reset; its flash will not be changed.');
+    const result = await run(reader.args, send, reader.command, { cwd: directory, timeout: 60000 });
+    if (result.code !== 0) return { ok: false, error: /timed out/i.test(result.out) ? 'The board read timed out. Check the port and Uno bootloader, then try again.' : 'Firmware download failed. ' + uploadHint(result.out).replace('Upload failed.', 'Read the messages above.').replace('before uploading', 'before downloading firmware') };
+    const text = fs.readFileSync(path.join(directory, 'firmware.hex'), 'utf8');
+    const bytes = validateHex(text);
+    fs.writeFileSync(save.filePath, text);
+    send('Saved ' + bytes + ' bytes to ' + save.filePath + '. This contains compiled flash, not the original .ino source. EEPROM is not included.');
+    return { ok: true, path: save.filePath, text, bytes, port };
+  } catch (error) { return { ok: false, error: 'Could not download firmware: ' + error.message }; }
+  finally {
+    boardOperation = false;
+    if (directory) fs.rmSync(directory, { recursive: true, force: true });
   }
 });
 

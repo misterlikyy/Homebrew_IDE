@@ -30,6 +30,12 @@ Choose your tabs at startup, then open a sketch or `.ideproj` project, continue 
 
 Open **Visualization** from the top bar for a separate circuit window. **Build from code** reads the project's files, and the parts library lets you add and wire components. Boards Manager and Library Manager are available from **Tools**.
 
+## Download firmware from an Uno
+
+Choose **Arduino Uno**, then **Run → Download Firmware from Board**. Choose where to save the `.hex` backup. The IDE temporarily closes its serial monitor, reads flash through the Uno bootloader, validates the HEX checksums, and shows the backup in a read-only viewer. Your editor files stay unchanged. Reading briefly resets the board; it does not erase or write flash.
+
+The board stores compiled machine code, **not the original `.ino` sketch**: source, comments, and original variable names cannot be recovered by this feature. This is a flash backup only (EEPROM is not included), and may include bootloader bytes. Boards with read protection or an incompatible bootloader may not allow readback. The feature currently supports the classic ATmega328P Uno over USB on Windows and Linux.
+
 ## Repository layout
 
 | Folder | Contents |
@@ -38,7 +44,7 @@ Open **Visualization** from the top bar for a separate circuit window. **Build f
 | [downloads/latest/](downloads/latest/) | Current download links and release notes |
 | [GitHub Releases](https://github.com/misterlikyy/Homebrew_IDE/releases/tag/latest) | Current Windows and Linux binaries |
 | [downloads/archive/](downloads/archive/) | Older published versions, grouped by alpha number |
-| [.github/workflows/](.github/workflows/) | Windows build automation |
+| [.github/workflows/](.github/workflows/) | Windows and Linux build automation |
 
 ## Build from source
 
