@@ -36,3 +36,5 @@ chmod +x IDE-beta-linux-x86_64.AppImage
 If FUSE 2 is unavailable, add `--appimage-extract-and-run` to the launch command. Alternatively, extract the `.tar.gz` archive and run `ide-beta` from the extracted folder. A graphical Linux desktop is required.
 
 **Linux serial access:** if connection or upload reports permission denied, follow [Arduino's port-access instructions](https://support.arduino.cc/hc/en-us/articles/360016495679-Fix-port-access-on-Linux).
+
+The Linux serial monitor opens the actual device path used for upload, such as `/dev/ttyUSB0`, and retries while the board restarts. Close other serial monitors that use the same board. The Dashboard updates when the sketch sends data; after a connection loss it labels retained readings as last received data.

@@ -11,6 +11,8 @@
 
 Everyone needs IDE-beta. For local-network mode, use the server PC’s network address, not `localhost`.
 
+On the **server PC itself**, use `http://127.0.0.1:1234` or `http://localhost:1234`. The app also accepts `127.0.0.0` and converts it to `127.0.0.1`. On **another PC**, enter the server’s LAN address, such as `http://192.168.1.50:1234`. Local HTTP is supported; public internet servers require HTTPS.
+
 <details>
 <summary>Permissions, recovery and limits</summary>
 

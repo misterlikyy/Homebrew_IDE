@@ -1,6 +1,6 @@
 {
   "name": "ide-beta",
-  "version": "1.0.0-beta.11",
+  "version": "1.0.0-beta.12",
   "description": "Desktop dashboard for Arduino Uno",
   "main": "main.js",
   "scripts": {
@@ -37,7 +37,9 @@
       "collaboration/*.cjs",
       "firmware.cjs",
       "icon.png",
-      "fonts/**/*"
+      "fonts/**/*",
+      "native-serial.cjs",
+      "serial-runtime.js"
     ],
     "win": {
       "target": "portable",
@@ -110,9 +112,11 @@
   "license": "MIT",
   "allowScripts": {
     "esbuild@0.25.12": true,
-    "electron@33.4.11": true
+    "electron@33.4.11": true,
+    "@serialport/bindings-cpp@13.0.0": true
   },
   "dependencies": {
+    "serialport": "13.0.0",
     "ws": "8.23.1",
     "yjs": "13.6.33"
   }

@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, session, net } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, session, net, webContents } = require('electron');
+const { NativeSerial } = require('./native-serial.cjs');
 const { spawn, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -108,6 +109,30 @@ async function cliPorts() {
 const ARDUINO_LIKE = new Set([0x2341, 0x2a03, 0x1a86, 0x0403, 0x10c4, 0x067b]);
 async function allPorts() { const c = await cliPorts(); return c.length ? c : osPorts(); }
 
+async function nativePorts() {
+  let ports;
+  try { ports = await require('serialport').SerialPort.list(); }
+  catch { osCache.t = 0; return allPorts(); }
+  return ports.map(p => ({ address: p.path, serialNumber: p.serialNumber || '',
+    vid: p.vendorId ? parseInt(p.vendorId, 16) : null, pid: p.productId ? parseInt(p.productId, 16) : null,
+    board: /arduino/i.test(p.manufacturer || '') ? p.manufacturer : '', label: p.friendlyName || p.manufacturer || p.path }));
+}
+const nativeSerial = new NativeSerial({ getPorts: nativePorts, emit: (owner, message) => {
+  const target = webContents.fromId(owner); if (target && !target.isDestroyed()) target.send('serial:native:data', message);
+} });
+for (const [name, action] of Object.entries({
+  ports: async () => ({ ok: true, ports: await nativePorts() }),
+  open: async (e, address, baud, token) => {
+    if (process.platform !== 'linux') throw Error('Native serial is enabled on Linux only.');
+    if (boardOperation) throw Error('Wait for the current board operation to finish.');
+    const result = await nativeSerial.open(e.sender.id, address, baud, token); lastPortName = address; return result;
+  },
+  write: async (e, token, data) => { await nativeSerial.write(e.sender.id, token, data); return { ok: true }; },
+  close: async (e, token) => { await nativeSerial.close(e.sender.id, token); return { ok: true }; }
+})) ipcMain.handle('serial:native:' + name, async (...args) => {
+  try { return await action(...args); } catch (error) { return { ok: false, error: error.message }; }
+});
+
 let lastPortName = '';          // the port the window was connected to
 async function pickPort(win) {
   const list = await allPorts();
@@ -132,7 +157,7 @@ function uploadHint(out) {
 }
 
 /* ---------- interface updates: a newer index.html can be installed without rebuilding the exe ---------- */
-const API_LEVEL = 3;
+const API_LEVEL = 4;
 const uiDir = () => path.join(app.getPath('userData'), 'ui');
 function meta(file, name) {
   try { const t = fs.readFileSync(file, 'utf8').slice(0, 4000), x = t.match(new RegExp('<meta name="' + name + '" content="(\\d+)"')); return x ? +x[1] : 0; } catch { return 0; }
@@ -176,14 +201,18 @@ function createWindow(o) {
   const win = new BrowserWindow(opts);
   wins.set(id, win);
   win.on('close', () => { win._closing = true; });
-  win.on('closed', () => wins.delete(id));
+  const serialOwner = win.webContents.id;
+  win.on('closed', () => { wins.delete(id); nativeSerial.close(serialOwner).catch(() => {}); });
   win.on('focus', () => win.webContents.focus());      // keyboard goes to the page whenever the window is activated
   const query = { ws: String(id) }; if (sat) { query.view = String(o.view); query.owner = String(o.owner || ''); }
   win._query = query;
   const loaded = win.loadFile(uiFile(), { query });
   if (startupCheck) {
     const timeout = setTimeout(() => { console.error('Startup check timed out'); app.exit(1); }, 30000);
-    loaded.then(() => win.webContents.executeJavaScript("Boolean(window.uno && window.IDECollab && window.ideCollaboration && navigator.serial && typeof openWorkspaceSetup === 'function' && document.querySelector('#workspaceDialog').open)"))
+    loaded.then(() => {
+      if (process.platform === 'linux') require('serialport').SerialPort;
+      return win.webContents.executeJavaScript("Boolean(window.uno && window.IDESerial && window.IDECollab && window.ideCollaboration && navigator.serial && typeof openWorkspaceSetup === 'function' && document.querySelector('#workspaceDialog').open)");
+    })
       .then(ok => {
         clearTimeout(timeout);
         console.log(JSON.stringify({ startup: !!ok, platform: process.platform, version: app.getVersion() }));
@@ -224,7 +253,9 @@ ipcMain.handle('ui:install', async e => {
   if (build <= meta(path.join(__dirname, 'index.html'), 'ide-build')) return { ok: false, error: 'The built-in interface is already as new as this update (build ' + build + ').' };
   fs.mkdirSync(uiDir(), { recursive: true });
   fs.copyFileSync(f, path.join(uiDir(), 'index.html'));
-  fs.copyFileSync(path.join(__dirname, 'workspace.js'), path.join(uiDir(), 'workspace.js'));
+  for (const name of ['workspace.js', 'serial-runtime.js', 'collaboration-ui.js', 'collaboration.bundle.js']) {
+    fs.copyFileSync(path.join(__dirname, name), path.join(uiDir(), name));
+  }
   fs.mkdirSync(path.join(uiDir(), 'fonts'), { recursive: true });
   for (const name of fs.readdirSync(path.join(__dirname, 'fonts'))) {
     fs.copyFileSync(path.join(__dirname, 'fonts', name), path.join(uiDir(), 'fonts', name));
@@ -335,6 +366,8 @@ ipcMain.handle('cli:upload', async (e, files, fqbn) => {
     send('Looking for the Arduino…');
     const port = await pickPort(win);
     if (!port) return { ok: false, error: NO_PORT };
+    await nativeSerial.close(e.sender.id);
+    if ([...nativeSerial.connections.values()].some(record => record.address === port)) return { ok: false, error: 'Disconnect this board in the other app window before uploading.' };
     send('Using port ' + port);
 
     send('Compiling…');
@@ -343,7 +376,9 @@ ipcMain.handle('cli:upload', async (e, files, fqbn) => {
 
     send('Uploading to ' + port + '…');
     r = await run(['upload', '-p', port, '--fqbn', fqbn, dir], send);
-    return r.code === 0 ? { ok: true } : { ok: false, error: uploadHint(r.out) };
+    if (r.code !== 0) return { ok: false, error: uploadHint(r.out) };
+    lastPortName = r.out.match(/New upload port:\s*([^\s(]+)/i)?.[1] || port;
+    return { ok: true, port: lastPortName };
   } finally {
     boardOperation = false;
     if (dir) fs.rmSync(path.dirname(dir), { recursive: true, force: true });

@@ -2,6 +2,8 @@ IDE-beta — Windows and Linux
 
 Extract the ZIP and run IDE-beta.exe.
 
+Beta 12 fixes local HTTP server addresses (including 127.0.0.0), uses native Linux serial monitoring, and retries the uploaded board's connection while it restarts. The Dashboard marks retained readings when disconnected. Use http://127.0.0.1:1234 on the server PC, or the server's LAN IP on another PC.
+
 Public server status: there is no public online collaboration server operated by this project. Collaboration uses your own local or self-hosted server.
 
 Live collaboration: use Share project to create a private code session or join with an IDE1 invitation. The IDE-beta-collaboration-server-linux.zip setup supports Ubuntu, Debian, Fedora and Linux Mint. Extract it and run bash setup-server.sh. Option 1 (the default) is for PCs on the same local network and does not configure internet access. Optional internet mode needs your own domain, DNS and router setup. The original Mint ZIP and setup-mint.sh remain compatibility shortcuts.

@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('uno', {
   platform: process.platform,
+  nativeSerialPorts: () => ipcRenderer.invoke('serial:native:ports'),
+  nativeSerialOpen: (address, baud, token) => ipcRenderer.invoke('serial:native:open', address, baud, token),
+  nativeSerialWrite: (token, data) => ipcRenderer.invoke('serial:native:write', token, data),
+  nativeSerialClose: token => ipcRenderer.invoke('serial:native:close', token),
+  onNativeSerial: fn => { const listener = (_, message) => fn(message); ipcRenderer.on('serial:native:data', listener); return () => ipcRenderer.removeListener('serial:native:data', listener); },
   createSession: (server, project, key) => ipcRenderer.invoke('collab:create', server, project, key),
   cliCheck: () => ipcRenderer.invoke('cli:check'),
   installCore: () => ipcRenderer.invoke('cli:installCore'),

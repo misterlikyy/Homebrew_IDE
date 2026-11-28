@@ -93,9 +93,10 @@ app.whenReady().then(async () => {
         } finally { askConfirm = confirm; }
       })()
     `);
+    await require('./smoke-serial.cjs')(editor, ipcMain);
     const service = require('../collaboration/server.cjs').createServer({ directory: path.join(profile, 'server'), createKey: 'ui-test-key' });
     await new Promise(resolve => service.server.listen(0, '127.0.0.1', resolve));
-    const address = 'http://127.0.0.1:' + service.server.address().port;
+    const address = 'http://127.0.0.0:' + service.server.address().port;
     await editor.webContents.executeJavaScript(`
       $('#collabName').value = 'Owner'; $('#collabServer').value = ${JSON.stringify(address)};
       $('#collabKey').value = 'ui-test-key'; $('#collabCreate').click();
@@ -156,7 +157,7 @@ app.whenReady().then(async () => {
     await service.close();
     if (errors.length) throw new Error(errors.join('\n'));
     clearTimeout(timeout);
-    console.log(JSON.stringify({ ok: true, platform: process.platform, projectSaveOpen: true, visualization: true, firmwareViewer: true, collaboration: true, bundledFont: true }));
+    console.log(JSON.stringify({ ok: true, platform: process.platform, projectSaveOpen: true, visualization: true, firmwareViewer: true, serialReconnect: true, collaboration: true, bundledFont: true }));
     app.exit(0);
   } catch (error) {
     clearTimeout(timeout);
