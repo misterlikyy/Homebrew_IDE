@@ -1,6 +1,8 @@
-IDE-beta — version 1.0.0-beta.7 (Windows and Linux)
+IDE-beta — Windows and Linux
 
 Extract the ZIP and run IDE-beta.exe.
+
+Run > Download Firmware from Board saves the connected classic Uno's compiled flash as a .hex backup and opens a read-only viewer. This cannot recover the original .ino source, comments, or variable names. EEPROM is not included. Reading resets the board briefly but does not erase or write flash. The open editor files stay unchanged.
 
 Linux x86-64: make IDE-beta-linux-x86_64.AppImage executable and run it. If FUSE 2 is unavailable, use --appimage-extract-and-run or the portable tar.gz archive. After extracting the archive, run ide-beta from the extracted folder.
 
